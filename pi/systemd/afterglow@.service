@@ -1,0 +1,20 @@
+# Run one module as a service that restarts on failure and starts at boot:
+#   sudo cp afterglow@.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now afterglow@bridge afterglow@position
+#   journalctl -u afterglow@bridge -f
+# Assumes user "pi" and the code in /home/pi/afterglow/code with a venv in .venv; edit User and paths if not.
+[Unit]
+Description=AFTERGLOW %i
+After=network-online.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/afterglow/code
+ExecStart=/home/pi/afterglow/code/.venv/bin/python -m afterglow.%i
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

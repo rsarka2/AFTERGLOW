@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="556" viewBox="0 0 1160 556" role="img" aria-label="System overview. In the park, a lost phone's Bluetooth beacon, the person's SOS answers and their body heat reach the pod's sensors. The Raspberry Pi 5 turns them into pins. A 16-byte LoRa alert carries each pin to an SDR on the ranger's laptop, which shows it on the operator TV and sends it to field teams' ATAK and iTAK phones. Wi-Fi, when in range, carries live data to the TV and the ranger's clicks back to the pod.">
+  <title>AFTERGLOW system overview</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d4ed8"/></marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #1e293b; }
+    .h1 { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13.5px; fill: #64748b; }
+    .zl { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; fill: #64748b; }
+    .bt { font-size: 13.5px; font-weight: 600; }
+    .bs { font-size: 12px; fill: #475569; }
+    .el { font-size: 11.5px; fill: #334155; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .o { fill: #c2410c; }
+    .b { fill: #1d4ed8; }
+    .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.3; }
+    .e { fill: none; stroke: #475569; stroke-width: 1.6; }
+    .eo { fill: none; stroke: #c2410c; stroke-width: 3; }
+    .wifi { fill: none; stroke: #475569; stroke-width: 1.6; stroke-dasharray: 5 4; }
+    .wifib { fill: none; stroke: #1d4ed8; stroke-width: 1.6; stroke-dasharray: 5 4; }
+    .cap { font-size: 12.5px; fill: #64748b; }
+  </style>
+
+  <rect width="1160" height="556" fill="#ffffff"/>
+  <text class="h1" x="24" y="42">AFTERGLOW · system overview</text>
+  <text class="sub" x="24" y="66">A lost phone's Bluetooth beacon becomes a pin on the ranger's map and field teams' phones, with no cell or Wi-Fi coverage.</text>
+
+  <!-- zones -->
+  <rect x="24" y="92" width="190" height="416" rx="14" fill="#f6f5ef" stroke="#e4e1d4"/>
+  <text class="zl" x="40" y="116">IN THE PARK</text>
+  <rect x="264" y="92" width="360" height="416" rx="14" fill="#eef2f7" stroke="#d5dde8"/>
+  <text class="zl" x="280" y="116">THE POD · UNDER THE DRONE</text>
+  <rect x="704" y="92" width="250" height="416" rx="14" fill="#edf5ef" stroke="#d3e5d8"/>
+  <text class="zl" x="720" y="116">RANGER'S LAPTOP</text>
+  <rect x="994" y="92" width="142" height="416" rx="14" fill="#f3f0f7" stroke="#e0d9ea"/>
+  <text class="zl" x="1008" y="116">FIELD TEAMS</text>
+
+  <!-- park -->
+  <rect class="box" x="40" y="142" width="158" height="52" rx="8"/>
+  <text class="bt" x="119" y="163" text-anchor="middle">Lost phone or AirTag</text>
+  <text class="bs" x="119" y="181" text-anchor="middle">beacons even when off</text>
+  <rect class="box" x="40" y="214" width="158" height="52" rx="8"/>
+  <text class="bt" x="119" y="235" text-anchor="middle">Person's phone</text>
+  <text class="bs" x="119" y="253" text-anchor="middle">answers the SOS page</text>
+  <rect class="box" x="40" y="286" width="158" height="52" rx="8"/>
+  <text class="bt" x="119" y="307" text-anchor="middle">Missing person</text>
+  <text class="bs" x="119" y="325" text-anchor="middle">warm body, on camera</text>
+
+  <!-- park -> pod -->
+  <path class="e" d="M198,168 H280" marker-end="url(#a)"/>
+  <text class="el" x="239" y="161" text-anchor="middle">BLE beacon</text>
+  <path class="e" d="M198,240 H280" marker-end="url(#a)"/>
+  <text class="el" x="239" y="233" text-anchor="middle">SOS answers</text>
+  <path class="e" d="M198,312 H280" marker-end="url(#a)"/>
+  <text class="el" x="239" y="305" text-anchor="middle">heat, image</text>
+
+  <!-- pod sensors -->
+  <rect class="box" x="280" y="142" width="140" height="52" rx="8"/>
+  <text class="bt" x="350" y="163" text-anchor="middle">BLE scanner</text>
+  <text class="bs" x="350" y="181" text-anchor="middle">ESP32 · passive</text>
+  <rect class="box" x="280" y="214" width="140" height="52" rx="8"/>
+  <text class="bt" x="350" y="235" text-anchor="middle">Wi-Fi + SOS page</text>
+  <text class="bs" x="350" y="253" text-anchor="middle">ESP32</text>
+  <rect class="box" x="280" y="286" width="140" height="52" rx="8"/>
+  <text class="bt" x="350" y="307" text-anchor="middle">Thermal + camera</text>
+  <text class="bs" x="350" y="325" text-anchor="middle">HT-203U · Cam 3</text>
+  <rect class="box" x="280" y="358" width="140" height="52" rx="8"/>
+  <text class="bt" x="350" y="379" text-anchor="middle">IMU / GPS</text>
+  <text class="bs" x="350" y="397" text-anchor="middle">where the pod is</text>
+
+  <path class="e" d="M420,168 H452" marker-end="url(#a)"/>
+  <path class="e" d="M420,240 H452" marker-end="url(#a)"/>
+  <path class="e" d="M420,312 H452" marker-end="url(#a)"/>
+  <path class="e" d="M420,384 H452" marker-end="url(#a)"/>
+
+  <!-- the Pi -->
+  <rect class="box" x="452" y="142" width="156" height="268" rx="10" stroke-width="1.6"/>
+  <text class="bt" x="530" y="168" text-anchor="middle" font-size="14.5">Raspberry Pi 5</text>
+  <text class="bs" x="530" y="186" text-anchor="middle">Python modules on MQTT</text>
+  <line x1="466" y1="200" x2="594" y2="200" stroke="#cbd5e1"/>
+  <g class="bs" font-size="12.5">
+    <circle cx="470" cy="220" r="2.2" fill="#64748b"/><text x="479" y="224" fill="#1e293b">hashes addresses</text>
+    <circle cx="470" cy="244" r="2.2" fill="#64748b"/><text x="479" y="248" fill="#1e293b">locates beacons</text>
+    <circle cx="470" cy="268" r="2.2" fill="#64748b"/><text x="479" y="272" fill="#1e293b">flags pins by rule</text>
+    <circle cx="470" cy="292" r="2.2" fill="#64748b"/><text x="479" y="296" fill="#1e293b">proposes flight legs</text>
+    <circle cx="470" cy="316" r="2.2" fill="#64748b"/><text x="479" y="320" fill="#1e293b">reports pod health</text>
+  </g>
+  <text class="bs o" x="530" y="370" text-anchor="middle" font-weight="600">only the 16-byte alert</text>
+  <text class="bs o" x="530" y="386" text-anchor="middle" font-weight="600">leaves by radio</text>
+
+  <path class="eo" d="M530,410 V438" marker-end="url(#ao)"/>
+  <rect class="box" x="452" y="440" width="156" height="48" rx="8" stroke="#c2410c" stroke-width="1.6"/>
+  <text class="bt" x="530" y="460" text-anchor="middle">RFM95W radio</text>
+  <text class="bs" x="530" y="477" text-anchor="middle">LoRa · 915 MHz</text>
+
+  <!-- Wi-Fi link -->
+  <text class="el" x="664" y="168" text-anchor="middle" fill="#64748b">Wi-Fi, in range</text>
+  <path class="wifi" d="M608,182 H718" marker-end="url(#a)"/>
+  <text class="el" x="664" y="199" text-anchor="middle">live data</text>
+  <path class="wifib" d="M720,214 H610" marker-end="url(#ab)"/>
+  <text class="el b" x="664" y="231" text-anchor="middle">ranger's clicks</text>
+
+  <!-- LoRa link -->
+  <path class="eo" d="M608,464 H718" marker-end="url(#ao)"/>
+  <text class="el o" x="664" y="454" text-anchor="middle" font-weight="700">915 MHz LoRa</text>
+  <text class="el" x="664" y="482" text-anchor="middle" fill="#64748b">one way</text>
+
+  <!-- laptop -->
+  <rect class="box" x="720" y="142" width="206" height="130" rx="8" stroke-width="1.6"/>
+  <text class="bt" x="823" y="166" text-anchor="middle" font-size="14.5">Operator TV</text>
+  <text class="bs mono" x="823" y="184" text-anchor="middle" font-size="11.5">dashboard.py</text>
+  <text class="bs" x="823" y="206" text-anchor="middle">map, pins, coverage, plans,</text>
+  <text class="bs" x="823" y="222" text-anchor="middle">live camera and heat</text>
+  <text class="bs b" x="823" y="246" text-anchor="middle" font-weight="700">Ranger approves every</text>
+  <text class="bs b" x="823" y="262" text-anchor="middle" font-weight="700">pin and every leg</text>
+
+  <rect class="box" x="720" y="296" width="206" height="48" rx="8"/>
+  <text class="bt mono" x="823" y="316" text-anchor="middle" font-size="13">cot_out</text>
+  <text class="bs" x="823" y="333" text-anchor="middle">pins → map markers</text>
+
+  <rect class="box" x="720" y="368" width="206" height="48" rx="8"/>
+  <text class="bt" x="823" y="388" text-anchor="middle">Decoder</text>
+  <text class="bs" x="823" y="405" text-anchor="middle">gr-lora_sdr → lora_rx</text>
+
+  <rect class="box" x="720" y="440" width="206" height="48" rx="8" stroke="#c2410c" stroke-width="1.6"/>
+  <text class="bt" x="823" y="460" text-anchor="middle">ADALM-PLUTO SDR</text>
+  <text class="bs" x="823" y="477" text-anchor="middle">USB · receive only</text>
+
+  <path class="eo" d="M823,440 V418" stroke-width="2.2" marker-end="url(#ao)"/>
+  <path class="e" d="M823,368 V346" marker-end="url(#a)"/>
+  <text class="el mono" x="831" y="361" font-size="11">ag/alert</text>
+  <path class="e" d="M926,392 H942 V236 H928" marker-end="url(#a)"/>
+
+  <!-- phones -->
+  <path class="e" d="M926,320 H1006" marker-end="url(#a)"/>
+  <text class="el" x="966" y="312" text-anchor="middle">CoT</text>
+  <rect class="box" x="1006" y="284" width="118" height="72" rx="8"/>
+  <text class="bt" x="1065" y="306" text-anchor="middle">ATAK / iTAK</text>
+  <text class="bs" x="1065" y="324" text-anchor="middle">pins as map</text>
+  <text class="bs" x="1065" y="340" text-anchor="middle">markers</text>
+
+  <text class="cap" x="24" y="534"><tspan fill="#c2410c" font-weight="600">Orange:</tspan> the LoRa alert, the only data the pod has to send.   <tspan font-weight="600">Dashed:</tspan> Wi-Fi, used only when the laptop is in range; if it drops, the TV still gets pins over LoRa.   <tspan fill="#1d4ed8" font-weight="600">Blue:</tspan> the ranger decides.</text>
+</svg>

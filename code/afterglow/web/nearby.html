@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AFTERGLOW · nearby</title>
+<link rel="icon" href="data:,">
+<!-- Close-range view: the pod in the middle, north up, every Bluetooth and Wi-Fi signal around it.
+     - Ring: heard now, distance only (RSSI through the tracker's model, /api/map "rssi"). The pod's antennas
+       are omnidirectional, so one spot can't give a direction.
+     - Dot: located. tracker.py placed the beacon (ag/track state localized or pinned) from sightings at
+       several pod positions; the dot sits at its real bearing from the latest ag/pose, with r95 drawn round it.
+     Read-only: nothing here publishes ag/ctrl or ag/mode.
+     URL options: ?m=5 (edge in metres), ?s=10 (drop a signal not heard for this long),
+     ?demo=1 (a fake pod walking a loop past fake beacons; no server data),
+     ?compact=1 (radar and nearest readout only: how the TV shows it, as the "Nearby signals" pane on its
+     60 State St page). It's part of the one dashboard, not a page to open on its own. -->
+<style>
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 400; src: url(vendor/ibm-plex/ibm-plex-sans-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'IBM Plex Sans'; font-weight: 600; src: url(vendor/ibm-plex/ibm-plex-sans-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 400; src: url(vendor/ibm-plex/ibm-plex-mono-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'IBM Plex Mono'; font-weight: 500; src: url(vendor/ibm-plex/ibm-plex-mono-latin-500-normal.woff2) format('woff2'); }
+:root {
+  --bg: #0a0c0e; --surface: #0f1215; --raised: #151a1e; --hair: #1f252b; --hair-2: #2b333a;
+  --text: #e4e7ea; --text-2: #a0a8b0; --text-3: #6c757e;
+  --brand: #f0a63a; --ok: #3fb68b; --crit: #e5484d; --info: #4da3ff;
+  --findmy: #e5484d; --findhub: #f76b15; --samsung: #f5c13d; --ref: #4da3ff;
+  --apple: #8b95a3; --other: #5d666f; --wifi: #4fb8c4;
+  --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.4 var(--sans);
+  font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+.app { display: grid; grid-template: auto 1fr / 1fr minmax(320px, 380px); height: 100%; }
+header { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; padding: 10px 16px;
+  border-bottom: 1px solid var(--hair); background: var(--surface); }
+header h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: .02em; }
+header h1 b { color: var(--brand); font-weight: 600; }
+.badge { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 3px; border: 1px solid var(--hair-2); color: var(--text-2); }
+.badge.live { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.badge.demo, .badge.sim, .badge.replay { color: var(--brand); border-color: color-mix(in srgb, var(--brand) 50%, transparent); }
+.badge.down { color: var(--crit); border-color: color-mix(in srgb, var(--crit) 50%, transparent); }
+header .spacer { flex: 1; }
+header .scale { font: 12px var(--mono); color: var(--text-3); }
+
+.stage { position: relative; display: grid; place-items: center; min-height: 0; overflow: hidden; padding: 12px; }
+#radar { width: 100%; height: 100%; max-height: calc(100vh - 110px); }
+.note { position: absolute; left: 16px; bottom: 12px; right: 16px; color: var(--text-3); font-size: 12px; }
+.legend { position: absolute; left: 16px; top: 12px; display: grid; gap: 4px; font-size: 12px; color: var(--text-2); }
+.legend span { display: flex; align-items: center; gap: 7px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; flex: none; }
+.legend i.o { background: none; border: 1.5px solid var(--c); }
+.legend hr { border: 0; border-top: 1px solid var(--hair); margin: 4px 0; width: 100%; }
+
+.ring-grid { fill: none; stroke: var(--hair-2); stroke-width: .5; }
+.ring-grid.edge { stroke: var(--text-3); stroke-width: .8; }
+.ring-label { fill: var(--text-3); font: 4.2px var(--mono); }
+.north { fill: var(--text-2); font: 600 6px var(--sans); text-anchor: middle; }
+.spoke { stroke: var(--hair); stroke-width: .4; }
+.nopose { fill: var(--text-3); font: 5px var(--sans); text-anchor: middle; }
+
+/* heard: a ring at the RSSI distance */
+.heard { transition: opacity .6s; }
+.heard circle { fill: none; stroke: var(--c); transition: r .45s ease-out; }
+.heard .band { stroke-width: 5; opacity: .12; }
+.heard .line { stroke-width: 1; stroke-dasharray: 3 2; opacity: .9; }
+.heard text { fill: var(--c); font: 500 4.4px var(--mono); paint-order: stroke; stroke: var(--bg); stroke-width: 1.4px; }
+.heard.sel .line, .heard.hot .line { stroke-width: 1.8; opacity: 1; }
+
+/* located: a dot at the tracker's position, with its 95% circle */
+.loc { transition: opacity .6s; cursor: pointer; }
+.loc .unc { fill: var(--c); fill-opacity: .1; stroke: var(--c); stroke-opacity: .5; stroke-width: .6; stroke-dasharray: 1.5 1.5;
+  transition: r 1.4s cubic-bezier(.2, .8, .2, 1); clip-path: url(#inside); }
+.loc .brg { stroke: var(--c); stroke-width: .6; opacity: .45; stroke-dasharray: 1 2; }
+.loc .core { fill: var(--c); stroke: var(--bg); stroke-width: .7; }
+.loc .halo { fill: var(--c); transform-box: fill-box; transform-origin: center; animation: halo 1.6s ease-out infinite; }
+@keyframes halo { from { transform: scale(.6); opacity: .45; } to { transform: scale(2.2); opacity: 0; } }
+.loc text { fill: var(--text); font: 500 4.6px var(--mono); paint-order: stroke; stroke: var(--bg); stroke-width: 1.4px; }
+.loc.edge .unc, .loc.edge .brg { display: none; }
+.loc.sel .core, .loc.hot .core { stroke: var(--text); stroke-width: 1; }
+
+.ping { fill: none; stroke: var(--info); stroke-width: .6; transform-box: fill-box; transform-origin: center;
+  animation: ping 3s ease-out infinite; }
+@keyframes ping { from { transform: scale(.15); opacity: .7; } to { transform: scale(1); opacity: 0; } }
+.drone .arm { stroke: var(--text-2); stroke-width: 1.6; stroke-linecap: round; }
+.drone .rotor { fill: var(--raised); stroke: var(--info); stroke-width: .8; }
+.drone .body { fill: var(--info); }
+
+aside { border-left: 1px solid var(--hair); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+.nearest { padding: 14px 16px; border-bottom: 1px solid var(--hair); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+.nearest .k { grid-column: 1 / -1; font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; }
+.nearest .v { font: 600 28px var(--mono); }
+.nearest .v small { font: 400 13px var(--sans); color: var(--text-2); margin-left: 6px; }
+.nearest .t { grid-column: 1; font-size: 13px; color: var(--text-2); }
+.nearest .arrow { grid-row: 2 / 4; grid-column: 2; width: 54px; height: 54px; border-radius: 50%; border: 1px solid var(--hair-2);
+  display: grid; place-items: center; }
+.nearest .arrow svg { transition: transform .4s; }
+.nearest .arrow b { font: 600 18px var(--mono); color: var(--brand); }
+.nearest .unknown { color: var(--brand); }
+.up { color: var(--ok); } .down { color: var(--crit); }
+.list { overflow-y: auto; flex: 1; }
+.sec { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px 6px;
+  font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; }
+.row { display: grid; grid-template-columns: 4px 1fr auto; gap: 10px; padding: 8px 16px 8px 12px; cursor: pointer;
+  border-top: 1px solid var(--hair); }
+.row:hover, .row.hot { background: var(--raised); }
+.row.sel { background: color-mix(in srgb, var(--raised) 70%, var(--c) 12%); }
+.row .bar { background: var(--c); border-radius: 2px; }
+.row .name { font-weight: 600; }
+.row .what { font-size: 12px; color: var(--text-2); }
+.row .st { font-size: 12px; margin-top: 2px; }
+.row .st.located { color: var(--ok); } .row .st.heardonly { color: var(--text-3); }
+.row .id { font: 11px var(--mono); color: var(--text-3); }
+.row .num { text-align: right; font-family: var(--mono); }
+.row .d { font-size: 15px; font-weight: 500; white-space: nowrap; }
+.row .d i { display: inline-block; font-style: normal; }
+.row .r { font-size: 11px; color: var(--text-3); }
+.empty { padding: 10px 16px 14px; color: var(--text-3); font-size: 13px; }
+.foot { padding: 8px 16px; border-top: 1px solid var(--hair); font-size: 12px; color: var(--text-3); }
+
+/* ?compact=1: the corner pane on the operator TV (tv.js IndoorStage): the radar and the nearest readout only */
+body.compact .app { display: block; position: relative; height: 100%; }
+body.compact header, body.compact .legend, body.compact .note, body.compact .list, body.compact .foot { display: none; }
+body.compact .stage { position: absolute; inset: 0; padding: 4px; }
+body.compact #radar { max-height: none; }
+body.compact aside { position: absolute; left: 0; bottom: 0; border: 0; border-top-right-radius: 6px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); }
+body.compact .nearest { padding: 6px 10px; border: 0; gap: 0 10px; }
+body.compact .nearest .k { font-size: 10px; }
+body.compact .nearest .v { font-size: 18px; }
+body.compact .nearest .v small { font-size: 11px; }
+body.compact .nearest .t { font-size: 11px; }
+body.compact .nearest .arrow { width: 34px; height: 34px; }
+body.compact .nearest .arrow svg { width: 22px; height: 22px; }
+body.compact .heard text { display: none; }   /* a crowded room is all rings: only located dots keep a label */
+body.compact .loc text { font-size: 6.5px; }
+body.compact .ring-label { font-size: 6px; }
+body.compact .north { font-size: 9px; }
+
+@media (max-width: 760px) {
+  .app { grid-template: auto minmax(320px, 55vh) 1fr / 1fr; height: auto; min-height: 100%; }
+  aside { border-left: 0; border-top: 1px solid var(--hair); }
+  .legend, header .scale { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><b>AFTERGLOW</b> · Nearby signals</h1>
+    <span class="badge" id="badge">…</span>
+    <span class="spacer"></span>
+    <span class="scale" id="scale"></span>
+  </header>
+  <div class="stage">
+    <svg id="radar" viewBox="-125 -125 250 250" role="img" aria-label="Signals around the pod, north up">
+      <defs>
+        <radialGradient id="bgfill"><stop offset="0" stop-color="#121820"/><stop offset="1" stop-color="#0b0e11"/></radialGradient>
+        <clipPath id="inside"><circle r="100"/></clipPath>
+      </defs>
+      <circle r="100" fill="url(#bgfill)"/>
+      <g id="grid"></g>
+      <circle class="ping" r="100"/>
+      <g id="rings"></g>
+      <g id="dots"></g>
+      <g class="drone" aria-label="pod">
+        <line class="arm" x1="-8" y1="-8" x2="8" y2="8"/><line class="arm" x1="8" y1="-8" x2="-8" y2="8"/>
+        <circle class="rotor" cx="-8" cy="-8" r="4.2"/><circle class="rotor" cx="8" cy="-8" r="4.2"/>
+        <circle class="rotor" cx="-8" cy="8" r="4.2"/><circle class="rotor" cx="8" cy="8" r="4.2"/>
+        <rect class="body" x="-3.6" y="-4.6" width="7.2" height="9.2" rx="1.6"/>
+      </g>
+      <text class="nopose" id="nopose" y="30"></text>
+    </svg>
+    <div class="legend" id="legend"></div>
+    <div class="note"><b>Ring</b>: heard, distance only (from signal strength, rough). One spot can't give a direction.
+      <b>Dot</b>: located. As the pod moves, the tracker compares the signal from each spot and places the beacon. North is up.</div>
+  </div>
+  <aside>
+    <div class="nearest" id="nearest"></div>
+    <div class="list" id="list"></div>
+    <div class="foot" id="foot"></div>
+  </aside>
+</div>
+<script type="module">
+import { connect, emptyState } from './store.js';
+
+const q = new URLSearchParams(location.search);
+const MAX_M = Math.max(1, +q.get('m') || 5);       // the edge of the view, in metres
+const WINDOW_S = Math.max(2, +q.get('s') || 10);   // a heard signal not heard for this long drops off
+const KEEP_S = 60;                                  // a located beacon stays this long after its last sighting
+const EDGE_X = 4;                                   // located beacons out to EDGE_X x MAX_M sit on the rim, pointing at them
+const DEMO = q.get('demo') === '1';
+if (q.get('compact') === '1') document.body.classList.add('compact');
+const R0 = 16, R1 = 100, K = (R1 - R0) / MAX_M;     // svg radius of 0 m and of the edge; svg units per metre
+let model = { p0: -48, n: 2.4 };                    // replaced by /api/map
+
+// What each signal type is. Every signal is shown the same way; the colour says which type it is.
+const KINDS = {
+  findmy:      { name: 'Find My beacon',    short: 'Find My', what: 'iPhone or AirTag away from its owner (lost, dead or off)', c: '--findmy' },
+  findhub:     { name: 'Find Hub tag',      short: 'Find Hub', what: 'Android phone or tag in offline finding', c: '--findhub' },
+  samsung_off: { name: 'Samsung lost mode', short: 'Samsung', what: 'Samsung phone or tag in lost mode', c: '--samsung' },
+  ref:         { name: 'Reference beacon',  short: 'Ref', what: 'Ours, for testing', c: '--ref' },
+  apple_other: { name: 'Apple device',      short: 'Apple', what: 'Live iPhone, Watch or AirPods near their owner', c: '--apple' },
+  other:       { name: 'Other Bluetooth',   short: 'BT', what: 'Headphones, watches, cars, anything else', c: '--other' },
+  wifi_rand:   { name: 'Wi-Fi probe',       short: 'Wi-Fi', what: 'A phone looking for networks (random address)', c: '--wifi' },
+  wifi:        { name: 'Wi-Fi device',      short: 'Wi-Fi', what: 'Fixed-address Wi-Fi device', c: '--wifi' },
+};
+const kindOf = (o, rand) => (o.kind === 'wifi' ? (rand[o.id] === false ? 'wifi' : 'wifi_rand') : (KINDS[o.cls] ? o.cls : 'other'));
+const kindOfCls = (cls) => (KINDS[cls] ? cls : 'other');   // ag/track cls (its "wifi" is fixed-address)
+
+const metres = (rssi) => 10 ** ((model.p0 - rssi) / (10 * model.n));
+const rssiAt = (m) => model.p0 - 10 * model.n * Math.log10(m);
+const rpx = (m) => R0 + K * Math.min(m, MAX_M);
+const hashAngle = (id) => { let h = 2166136261; for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return ((h >>> 0) / 2 ** 32) * 2 * Math.PI; };
+const POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const compass = (deg) => POINTS[Math.round(deg / 45) % 8];
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const $ = (id) => document.getElementById(id);
+const SVG = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}) => { const e = document.createElementNS(SVG, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const setR = (c, r) => { c.setAttribute('r', r); c.style.r = `${r}px`; };   // style.r animates (CSS transition)
+
+function drawGrid() {
+  const g = $('grid'); g.replaceChildren();
+  for (let a = 0; a < 4; a++) {
+    const t = a * Math.PI / 4;
+    g.append(el('line', { class: 'spoke', x1: -R1 * Math.cos(t), y1: -R1 * Math.sin(t), x2: R1 * Math.cos(t), y2: R1 * Math.sin(t) }));
+  }
+  const step = MAX_M <= 6 ? 1 : MAX_M <= 15 ? 2.5 : 5;
+  for (let m = step; m <= MAX_M + 1e-9; m += step) {
+    const edge = Math.abs(m - MAX_M) < 1e-9;
+    g.append(el('circle', { class: 'ring-grid' + (edge ? ' edge' : ''), r: rpx(m) }));
+    const lab = el('text', { class: 'ring-label', x: rpx(m) * 0.71 + 1.5, y: -rpx(m) * 0.71 - 1.5 });
+    lab.textContent = edge ? `${m} m · ${Math.round(rssiAt(m))} dBm` : `${m} m`;
+    g.append(lab);
+  }
+  const n = el('text', { class: 'north', y: -R1 - 4 }); n.textContent = 'N'; g.append(n);
+  $('scale').textContent = `edge ${MAX_M} m ≈ ${Math.round(rssiAt(MAX_M))} dBm · 1 m = ${model.p0} dBm · n ${model.n}`;
+  const lg = (k) => `<span><i style="--c:var(${KINDS[k].c})"></i>${KINDS[k].name}</span>`;
+  $('legend').innerHTML = ['findmy', 'findhub', 'samsung_off', 'apple_other', 'other', 'wifi_rand'].map(lg).join('') +
+    `<hr><span><i class="o" style="--c:var(--text-2)"></i>Heard: distance only</span><span><i style="--c:var(--text-2)"></i>Located: real direction</span>`;
+}
+
+// Per-id smoothing (RSSI jumps a few dB between packets) and a 4 s history for the closer/farther hint.
+const smooth = {};
+function smoothed(o) {
+  let s = smooth[o.id];
+  if (!s) s = smooth[o.id] = { n: -1, rssi: o.rssi, hist: [] };
+  if (s.n !== o.n) {
+    s.n = o.n;
+    s.rssi = s.rssi * 0.6 + o.rssi * 0.4;
+    s.hist.push([o.t, s.rssi]);
+    while (s.hist.length > 1 && o.t - s.hist[0][0] > 4000) s.hist.shift();
+  }
+  return s;
+}
+
+let sel = null, hot = null;
+const rand = {};   // id -> Wi-Fi rand flag (the obs summary drops it; obs_log has it)
+
+// Everything to draw: located tracks (dots) and heard ids that no located track covers (rings).
+function collect(state) {
+  for (const { topic, msg } of state.obs_log || []) if (topic === 'ag/obs/wifi' && msg.id) rand[msg.id] = msg.rand;
+  const now = state.bus_t || Date.now();
+  const pose = Object.values(state.poses || {})[0];
+  const havePose = !!pose && Number.isFinite(pose.x) && Number.isFinite(pose.y);
+  const items = [], covered = new Set(), onPod = new Set(), base = new Set();
+  let farther = 0;
+  for (const tr of Object.values(state.tracks || {})) {
+    const ids = tr.ids || [];
+    if (tr.baseline) ids.forEach((i) => base.add(i));
+    if (tr.with_drone) { ids.forEach((i) => onPod.add(i)); continue; }
+    if (!havePose || !(tr.state === 'localized' || tr.state === 'pinned') || !Number.isFinite(tr.x) || !Number.isFinite(tr.y)) continue;
+    const quiet = Math.max(0, (now - tr.t) / 1000) + (tr.last_s || 0);
+    if (quiet > KEEP_S) continue;
+    const dx = tr.x - pose.x, dy = tr.y - pose.y, m = Math.hypot(dx, dy);
+    ids.forEach((i) => covered.add(i));
+    if (m > EDGE_X * MAX_M) { farther++; continue; }
+    const k = kindOfCls(tr.cls), kind = KINDS[k];
+    items.push({ key: 'T:' + tr.track, located: true, id: ids[ids.length - 1] ?? tr.track, track: tr.track, kind,
+                 baseline: !!tr.baseline, m, brg: (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360,
+                 r95: tr.r95, state: tr.state, age: quiet, c: tr.c });
+  }
+  for (const o of Object.values(state.obs || {})) {
+    if (typeof o.rssi !== 'number' || typeof o.t !== 'number') continue;
+    const age = Math.max(0, (now - o.t) / 1000);
+    if (age > WINDOW_S) { delete smooth[o.id]; continue; }
+    const s = smoothed(o);
+    if (covered.has(o.id)) continue;            // drawn as its track's dot
+    const m = metres(s.rssi);
+    if (m > MAX_M) { farther++; continue; }
+    const kind = KINDS[kindOf(o, rand)], pod = onPod.has(o.id), bl = base.has(o.id);
+    const h = s.hist, trend = h.length > 1 ? h[h.length - 1][1] - h[0][1] : 0;
+    items.push({ key: 'O:' + o.id, located: false, id: o.id, kind, onPod: pod, baseline: bl, m, rssi: s.rssi, age, n: o.n, trend });
+  }
+  items.sort((a, b) => (b.located - a.located) || a.m - b.m);
+  return { items, farther, havePose };
+}
+
+const fade = (age, span) => (age < 2 ? 1 : Math.max(0.3, 1 - (age - 2) / Math.max(1, span - 2)));
+
+function syncLayer(layer, list, make, update) {
+  const seen = new Set();
+  for (const it of list) {
+    seen.add(it.key);
+    let e = layer.querySelector(`[data-key="${CSS.escape(it.key)}"]:not([data-dying])`);
+    if (!e) { e = make(it); e.dataset.key = it.key; layer.append(e); }
+    e.style.setProperty('--c', `var(${it.kind.c})`);
+    e.classList.toggle('sel', it.key === sel);
+    e.classList.toggle('hot', it.key === hot);
+    update(e, it);
+  }
+  for (const e of [...layer.children]) {
+    if (seen.has(e.dataset.key) || e.dataset.dying) continue;
+    e.dataset.dying = '1'; e.style.opacity = 0; setTimeout(() => e.remove(), 650);
+  }
+}
+
+function makeRing(it) {
+  const g = el('g', { class: 'heard' });
+  g.append(el('circle', { class: 'band' }), el('circle', { class: 'line' }), el('text'));
+  return g;
+}
+function updateRing(g, it) {
+  const r = rpx(it.m);
+  for (const c of g.querySelectorAll('circle')) setR(c, r);
+  g.style.opacity = fade(it.age, WINDOW_S);
+  const t = g.querySelector('text');
+  if (t) {   // the label just names the ring; where it sits on the ring means nothing
+    const a = hashAngle(it.id);
+    t.setAttribute('x', (Math.sin(a) * r).toFixed(1)); t.setAttribute('y', (-Math.cos(a) * r).toFixed(1));
+    t.setAttribute('text-anchor', Math.sin(a) < 0 ? 'end' : 'start');
+    t.textContent = ` ${it.kind.short} ≈${it.m.toFixed(1)} m `;
+  }
+}
+
+function makeLocated(it) {
+  const g = el('g', { class: 'loc' });
+  const unc = el('circle', { class: 'unc' });
+  setR(unc, rpx(Math.min(it.m, MAX_M)));   // starts as wide as the ring it replaces, then shrinks to r95
+  g.dataset.fresh = '1';
+  g.append(el('line', { class: 'brg' }), unc);
+  g.append(el('circle', { class: 'halo', r: 5 }), el('circle', { class: 'core', r: 4 }), el('text', { y: 1.6 }));
+  return g;
+}
+function updateLocated(g, it) {
+  const edge = it.m > MAX_M, a = it.brg * Math.PI / 180;
+  const r = edge ? R1 + 6 : rpx(it.m), x = Math.sin(a) * r, y = -Math.cos(a) * r;
+  g.classList.toggle('edge', edge);
+  const brg = g.querySelector('.brg');
+  brg.setAttribute('x1', (Math.sin(a) * R0).toFixed(1)); brg.setAttribute('y1', (-Math.cos(a) * R0).toFixed(1));
+  brg.setAttribute('x2', x.toFixed(1)); brg.setAttribute('y2', y.toFixed(1));
+  for (const c of g.querySelectorAll('.unc, .halo, .core')) { c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); }
+  if (g.dataset.fresh) delete g.dataset.fresh;   // first frame: keep the wide circle, so the shrink animates
+  else setR(g.querySelector('.unc'), Math.max(2, Math.min(R1, K * (it.r95 || 0))));
+  g.querySelector('.core').setAttribute('r', edge ? 3 : 4);
+  g.style.opacity = fade(it.age, KEEP_S);
+  const t = g.querySelector('text');
+  if (t) {
+    const left = Math.sin(a) < 0;
+    t.setAttribute('x', (x + (left ? -6.5 : 6.5)).toFixed(1)); t.setAttribute('y', (y + 1.6).toFixed(1));
+    t.setAttribute('text-anchor', left ? 'end' : 'start');
+    t.textContent = `${it.kind.short} ${it.m.toFixed(1)} m ${compass(it.brg)}`;
+  }
+}
+
+function drawRadar(items, havePose) {
+  syncLayer($('rings'), items.filter((it) => !it.located), makeRing, updateRing);
+  syncLayer($('dots'), items.filter((it) => it.located), makeLocated, updateLocated);
+  $('nopose').textContent = havePose ? '' : 'No pod position yet: rings only';
+}
+
+const arrowSvg = (deg, c) => `<svg width="34" height="34" viewBox="-17 -17 34 34" style="transform:rotate(${deg}deg)">
+  <path d="M0 -14 L8 4 L0 0 L-8 4 Z" fill="var(${c})"/></svg>`;
+
+function row(it) {
+  const status = it.located
+    ? `<div class="st located">Located${it.state === 'pinned' ? ' (pinned)' : ''} · ±${(it.r95 ?? 0).toFixed(1)} m</div>`
+    : `<div class="st heardonly">${it.onPod ? 'Rides on the pod (one of ours)' : 'Heard · direction unknown'}</div>`;
+  const num = it.located
+    ? `<div class="d">${it.m.toFixed(1)} m <i style="transform:rotate(${it.brg}deg)">↑</i> ${compass(it.brg)}</div>
+       <div class="r">${it.age < 1 ? 'heard now' : 'heard ' + Math.round(it.age) + ' s ago'}</div>`
+    : `<div class="d">≈${it.m.toFixed(1)} m${it.trend > 3 ? ' <span class="up">↑</span>' : it.trend < -3 ? ' <span class="down">↓</span>' : ''}</div>
+       <div class="r">${Math.round(it.rssi)} dBm · ${it.age < 1 ? 'now' : Math.round(it.age) + ' s'}</div>`;
+  return `<div class="row${it.key === sel ? ' sel' : ''}${it.key === hot ? ' hot' : ''}" data-key="${esc(it.key)}" style="--c:var(${it.kind.c})">
+    <span class="bar"></span>
+    <div><div class="name">${it.kind.name}${it.baseline ? ' (baseline)' : ''}</div><div class="what">${it.kind.what}</div>${status}
+      <div class="id">${esc(it.located ? it.track + ' · ' + it.id : it.id + ' · heard ×' + it.n)}</div></div>
+    <div class="num">${num}</div>
+  </div>`;
+}
+
+function drawSide(items, farther) {
+  const best = [...items].sort((a, b) => a.m - b.m)[0];
+  let html = `<div class="k">Nearest signal</div>`;
+  if (!best) html += `<div class="v" style="color:var(--text-3)">none<small>within ${MAX_M} m</small></div>`;
+  else if (best.located) html += `<div class="v" style="color:var(${best.kind.c})">${best.m.toFixed(1)} m<small>${best.kind.name}</small></div>
+      <div class="t">Head <b>${compass(best.brg)}</b> (${Math.round(best.brg)}°) · ±${(best.r95 ?? 0).toFixed(1)} m</div>
+      <div class="arrow">${arrowSvg(best.brg, best.kind.c)}</div>`;
+  else html += `<div class="v" style="color:var(${best.kind.c})">≈${best.m.toFixed(1)} m<small>${best.kind.name}</small></div>
+      <div class="t"><span class="unknown">Direction unknown: move the pod</span> ·
+        <span class="${best.trend > 3 ? 'up' : best.trend < -3 ? 'down' : ''}">${best.trend > 3 ? 'getting closer' : best.trend < -3 ? 'getting farther' : 'steady'}</span></div>
+      <div class="arrow"><b>?</b></div>`;
+  $('nearest').innerHTML = html;
+  $('list').innerHTML = `<div class="sec"><span>Signals · ${items.length}</span></div>` +
+    (items.length ? items.map(row).join('') : `<div class="empty">Nothing heard within ${MAX_M} m.</div>`);
+  $('foot').textContent = `${farther} more heard farther away · located beacons stay ${KEEP_S} s after their last sighting`;
+}
+
+function render(state, linkLabel, linkCls) {
+  const { items, farther, havePose } = collect(state);
+  if (sel && !items.some((it) => it.key === sel)) sel = null;
+  drawRadar(items, havePose);
+  drawSide(items, farther);
+  const b = $('badge'); b.textContent = linkLabel; b.className = 'badge ' + linkCls;
+}
+
+// Clicks and hovers (rows are redrawn 4 times a second, so these are delegated).
+$('list').addEventListener('click', (e) => {
+  const r = e.target.closest('.row'); if (r) sel = sel === r.dataset.key ? null : r.dataset.key;
+});
+$('list').addEventListener('mouseover', (e) => { hot = e.target.closest('.row')?.dataset.key ?? null; });
+$('list').addEventListener('mouseleave', () => { hot = null; });
+$('dots').addEventListener('click', (e) => { const g = e.target.closest('.loc'); if (g) sel = sel === g.dataset.key ? null : g.dataset.key; });
+
+if (DEMO) {
+  // Fake data only (?demo=1), never mixed with real data: a pod walking a loop past fixed beacons, and a stand-in
+  // tracker whose r95 shrinks as the spots it heard a beacon from spread out. Every lap starts a new search.
+  drawGrid();
+  const state = emptyState();
+  const path = [[-4, -1.5], [4, -1.5], [4, 1.5], [-4, 1.5]], SPEED = 0.5, TICK = 250;
+  const legs = path.map((p, i) => { const q2 = path[(i + 1) % path.length]; return { p, q: q2, len: Math.hypot(q2[0] - p[0], q2[1] - p[1]) }; });
+  const lap = legs.reduce((s, l) => s + l.len, 0);
+  const at = (d) => { for (const l of legs) { if (d <= l.len) { const f = d / l.len; return [l.p[0] + (l.q[0] - l.p[0]) * f, l.p[1] + (l.q[1] - l.p[1]) * f]; } d -= l.len; } return path[0]; };
+  const TRACKED = new Set(['findmy', 'findhub', 'samsung_off', 'ref']);
+  const world = [['findmy', 1.5, 3.2], ['findhub', -2, -3.5], ['samsung_off', 6, 0.5], ['findmy', 3, -4.5],
+    ['apple_other', -1, 0.4], ['apple_other', 3, -3.2], ['apple_other', -7, 3], ['other', 0.5, -2.6], ['other', 5.5, 4],
+    ['wifi', -3, 2.6], ['wifi', 2, -0.4]].map(([cls, x, y], i) => ({ id: (0x1a2b3c4d * (i + 7) >>> 0).toString(16).padStart(8, '0').slice(-8), cls, x, y, seen: [], tn: i + 1 }));
+  let walked = 0;
+  setInterval(() => {
+    const t = Date.now();
+    walked += SPEED * TICK / 1000;
+    if (walked >= lap) { walked -= lap; state.tracks = {}; for (const b of world) b.seen = []; }   // new lap = new search
+    const [px, py] = at(walked);
+    state.poses.pod = { t, x: px, y: py, src: 'sim' }; state.bus_t = t;
+    for (const b of world) {
+      const d = Math.max(0.3, Math.hypot(b.x - px, b.y - py));
+      if (Math.random() > (b.cls === 'apple_other' ? 0.9 : 0.6)) continue;
+      const rssi = Math.round(model.p0 - 10 * model.n * Math.log10(d) + (Math.random() - 0.5) * 6);
+      const wifi = b.cls === 'wifi';
+      const o = state.obs[b.id] ||= { id: b.id, n: 0, first: t, best: -999 };
+      Object.assign(o, { kind: wifi ? 'wifi' : 'ble', cls: wifi ? 'wifi' : b.cls, rssi, t, n: o.n + 1 });
+      if (wifi) rand[b.id] = true;
+      if (!TRACKED.has(b.cls)) continue;
+      b.seen.push([px, py]);
+      if (b.seen.length < 3) continue;
+      const xs = b.seen.map((s) => s[0]), ys = b.seen.map((s) => s[1]);
+      const spread = Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+      const r95 = Math.min(8, Math.max(0.7, 8 - 1.3 * spread)), off = hashAngle(b.id);
+      state.tracks['T' + b.tn] = { t, track: 'T' + b.tn, ids: [b.id], cls: b.cls, x: b.x + Math.cos(off) * r95 * 0.3, y: b.y + Math.sin(off) * r95 * 0.3,
+        r95, state: r95 <= 2 ? 'pinned' : r95 <= 5 ? 'localized' : 'heard', last_s: 0, with_drone: false, baseline: false, c: 0.5 };
+    }
+    render(state, 'DEMO DATA', 'demo');
+  }, TICK);
+} else {
+  fetch('/api/map').then((r) => r.json()).then((meta) => { if (meta.rssi) model = meta.rssi; }).catch(() => {}).finally(drawGrid);
+  const store = connect({ trailStep: 1, onChange: () => {} });
+  setInterval(() => {
+    const s = store.state, src = Object.values(s.poses || {})[0]?.src;
+    const label = store.link !== 'live' ? store.link.toUpperCase() : !s.broker ? 'NO BROKER'
+      : src === 'sim' ? 'SIMULATED' : src === 'replay' ? 'REPLAY' : 'LIVE';
+    render(s, label, store.link !== 'live' || !s.broker ? 'down' : src === 'sim' ? 'sim' : src === 'replay' ? 'replay' : 'live');
+  }, 250);
+}
+</script>
+</body>
+</html>

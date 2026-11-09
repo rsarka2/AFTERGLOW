@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "bldg_1",
+        "name": "60 State Street",
+        "kind": "building",
+        "approximate": true
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.0570347,
+              42.3586385
+            ],
+            [
+              -71.056281,
+              42.3586385
+            ],
+            [
+              -71.056281,
+              42.3590517
+            ],
+            [
+              -71.0563782,
+              42.3591236
+            ],
+            [
+              -71.0570347,
+              42.3591236
+            ],
+            [
+              -71.0570347,
+              42.3586385
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

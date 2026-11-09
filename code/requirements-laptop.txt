@@ -1,0 +1,8 @@
+# Laptop: LoRa receiver (lora_rx; the Pluto itself needs the conda "sdr" env), ATAK output, simulator, dashboard development
+paho-mqtt>=2.0
+pyserial>=3.5
+pynmea2>=1.19
+numpy
+matplotlib
+pillow          # camera.py (already pulled in by matplotlib)
+pytest

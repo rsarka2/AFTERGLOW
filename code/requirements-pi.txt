@@ -1,0 +1,15 @@
+# On the Pi, inside a venv made with --system-site-packages
+# (picamera2, Pillow, the Hailo packages, lgpio and OpenCV come from apt, not pip).
+paho-mqtt>=2.0
+pyserial>=3.5
+pynmea2>=1.19
+smbus2
+numpy
+adafruit-blinka
+# Blinka's Pi 5 platform deps: without them its first import stops to install them
+gpiod>=2.2.2,<3
+Adafruit-Blinka-Raspberry-Pi-PWM>=1.0.2
+Adafruit-Blinka-Raspberry-Pi5-Neopixel
+adafruit-circuitpython-rfm9x
+adafruit-circuitpython-bno08x
+pytest

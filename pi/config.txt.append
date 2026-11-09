@@ -1,0 +1,20 @@
+# AFTERGLOW pod: append to /boot/firmware/config.txt, then reboot.
+# Never set dtparam=spi=on: SPI0 would take GPIO8/9 from WIFI's UART3.
+dtparam=i2c_arm=on
+# 400 kHz; drop to 100000 if the BNO086 reads fail (the thermal camera is USB now, not I2C)
+dtparam=i2c_arm_baudrate=400000
+# UART0 on GPIO14/15 (pins 8, 10) -> /dev/ttyAMA0: OMNI board
+dtparam=uart0=on
+# UART3 on GPIO8/9 (pins 24, 21) -> /dev/ttyAMA3: WIFI board
+dtoverlay=uart3-pi5
+# UART2 on GPIO4/5 (pins 7, 29) -> /dev/ttyAMA2: reserved for a GPS receiver
+dtoverlay=uart2-pi5
+# SPI1 -> /dev/spidev1.0: pod LoRa radio (RFM95W). The library drives CS on GPIO18 itself,
+# so the kernel's CS moves to the free GPIO16 (pin 36), or you get "GPIO busy".
+dtoverlay=spi1-1cs,cs0_pin=16
+# The 3 A power bank can't announce 5 A: leave the USB limit at 600 mA (the radar is the only USB device).
+# Don't add usb_max_current_enable=1 or PSU_MAX_CURRENT=5000.
+# Camera Module 3 on the CSI ribbon
+camera_auto_detect=1
+# AI HAT+ (Hailo-8) on PCIe, Gen 3
+dtparam=pciex1_gen=3

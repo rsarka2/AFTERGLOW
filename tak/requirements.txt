@@ -1,0 +1,2 @@
+# TAK add-on, on top of code/requirements-laptop.txt
+cryptography>=42   # tak_certs.py: the certificates and the iTAK data package

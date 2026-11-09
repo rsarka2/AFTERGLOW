@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="612" viewBox="0 0 1120 612" role="img" aria-label="The LoRa link. On the pod, geofence publishes one ag/target record per pin; lora_out packs each live pin into a 16-byte alert every 5 seconds and sends it through the RFM95W at 915 MHz. On the laptop, an ADALM-PLUTO SDR receives it, pluto_rx decodes it with GNU Radio and gr-lora_sdr, lora_rx keeps only our pod's packets and publishes ag/alert, and cot_out turns it into ATAK and iTAK markers. The 16-byte alert holds the pin number, position, radius, state, confidence, priority, class, SOS answer, time since heard, battery and off-trail distance, and never an address or ID.">
+  <title>AFTERGLOW LoRa link and alert</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/></marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #1e293b; }
+    .h1 { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13.5px; fill: #64748b; }
+    .zl { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; fill: #64748b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; font-weight: 700; }
+    .bt { font-size: 13.5px; font-weight: 600; }
+    .bs { font-size: 12px; fill: #475569; }
+    .tp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; fill: #334155; }
+    .el { font-size: 11.5px; fill: #334155; }
+    .o { fill: #c2410c; }
+    .r { fill: #b91c1c; }
+    .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.3; }
+    .e { fill: none; stroke: #475569; stroke-width: 1.6; }
+    .eo { fill: none; stroke: #c2410c; stroke-width: 3; }
+    .cap { font-size: 12.5px; fill: #64748b; }
+    .bn { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; fill: #94a3b8; }
+    .c1 { font-size: 12px; font-weight: 700; }
+    .c2 { font-size: 10.5px; fill: #64748b; }
+    .grp { font-size: 11px; font-weight: 600; fill: #475569; }
+  </style>
+
+  <rect width="1120" height="612" fill="#ffffff"/>
+  <text class="h1" x="24" y="42">The LoRa link · pod to ranger, no cell or Wi-Fi</text>
+  <text class="sub" x="24" y="66">Each pin rides in a 16-byte alert. A software-defined radio on the laptop decodes it, and field teams see it in ATAK.</text>
+
+  <!-- zones -->
+  <rect x="16" y="84" width="300" height="300" rx="14" fill="#eef2f7" stroke="#d5dde8"/>
+  <text class="zl" x="32" y="104">THE POD</text>
+  <rect x="416" y="84" width="450" height="300" rx="14" fill="#edf5ef" stroke="#d3e5d8"/>
+  <text class="zl" x="432" y="104">RANGER'S LAPTOP</text>
+  <rect x="906" y="84" width="198" height="300" rx="14" fill="#f3f0f7" stroke="#e0d9ea"/>
+  <text class="zl" x="922" y="104">FIELD TEAMS</text>
+
+  <!-- pod column -->
+  <rect class="box" x="40" y="118" width="252" height="60" rx="8"/>
+  <text class="mt" x="166" y="142" text-anchor="middle">geofence</text>
+  <text class="bs" x="166" y="161" text-anchor="middle">one ag/target record per pin</text>
+  <path class="e" d="M166,178 V206" marker-end="url(#a)"/>
+  <text class="tp" x="174" y="197">ag/target</text>
+
+  <rect class="box" x="40" y="208" width="252" height="60" rx="8"/>
+  <text class="mt" x="166" y="228" text-anchor="middle">lora_out</text>
+  <text class="bs" x="166" y="246" text-anchor="middle">each live pin every 5 s, a heartbeat</text>
+  <text class="bs" x="166" y="261" text-anchor="middle">obeys lora_off, even after a restart</text>
+  <path class="eo" d="M166,268 V296" stroke-width="2.4" marker-end="url(#ao)"/>
+  <text class="tp o" x="174" y="287">16-byte alert</text>
+
+  <rect class="box" x="40" y="298" width="252" height="60" rx="8" stroke="#c2410c" stroke-width="1.6"/>
+  <text class="bt" x="166" y="322" text-anchor="middle">RFM95W radio (SX1276)</text>
+  <text class="bs" x="166" y="340" text-anchor="middle">SPI1 · 915 MHz spring antenna</text>
+
+  <!-- air -->
+  <path class="eo" d="M292,328 H438" marker-end="url(#ao)"/>
+  <text class="el o" x="366" y="316" text-anchor="middle" font-weight="700">915 MHz LoRa</text>
+  <text class="el" x="366" y="348" text-anchor="middle" fill="#64748b">SF7 · 125 kHz</text>
+  <text class="el" x="366" y="364" text-anchor="middle" fill="#64748b">plain, unencrypted</text>
+
+  <!-- laptop column A -->
+  <rect class="box" x="440" y="298" width="200" height="60" rx="8" stroke="#c2410c" stroke-width="1.6"/>
+  <text class="bt" x="540" y="322" text-anchor="middle">ADALM-PLUTO SDR</text>
+  <text class="bs" x="540" y="340" text-anchor="middle">USB · receive only</text>
+  <path class="e" d="M540,298 V270" marker-end="url(#a)"/>
+  <text class="tp" x="548" y="287">IQ samples</text>
+
+  <rect class="box" x="440" y="208" width="200" height="60" rx="8"/>
+  <text class="mt" x="540" y="228" text-anchor="middle">pluto_rx</text>
+  <text class="bs" x="540" y="246" text-anchor="middle">GNU Radio + gr-lora_sdr</text>
+  <text class="bs" x="540" y="261" text-anchor="middle">decodes LoRa packets</text>
+  <path class="e" d="M540,208 V180" marker-end="url(#a)"/>
+  <text class="tp" x="548" y="197">rx lines (hex)</text>
+
+  <rect class="box" x="440" y="118" width="200" height="60" rx="8"/>
+  <text class="mt" x="540" y="142" text-anchor="middle">lora_rx</text>
+  <text class="bs" x="540" y="161" text-anchor="middle">keeps only our pod's packets</text>
+
+  <!-- laptop column B -->
+  <path class="e" d="M640,148 H702" marker-end="url(#a)"/>
+  <path class="e" d="M672,148 V238 H702" marker-end="url(#a)"/>
+  <circle cx="672" cy="148" r="3" fill="#475569"/>
+  <text class="tp" x="671" y="140" text-anchor="middle">ag/alert</text>
+
+  <rect class="box" x="704" y="118" width="142" height="60" rx="8"/>
+  <text class="mt" x="775" y="142" text-anchor="middle">cot_out</text>
+  <text class="bs" x="775" y="161" text-anchor="middle">alert → CoT marker</text>
+
+  <rect class="box" x="704" y="208" width="142" height="60" rx="8"/>
+  <text class="bt" x="775" y="228" text-anchor="middle">Operator TV</text>
+  <text class="bs" x="775" y="246" text-anchor="middle">LoRa link status,</text>
+  <text class="bs" x="775" y="261" text-anchor="middle">pins if Wi-Fi drops</text>
+
+  <!-- phones -->
+  <path class="e" d="M846,148 H924" marker-end="url(#a)"/>
+  <text class="tp" x="886" y="140" text-anchor="middle">CoT XML</text>
+  <rect class="box" x="926" y="118" width="158" height="150" rx="8"/>
+  <text class="bt" x="1005" y="140" text-anchor="middle">ATAK / iTAK</text>
+  <text class="bs" x="1005" y="159" text-anchor="middle">one marker per pin,</text>
+  <text class="bs" x="1005" y="175" text-anchor="middle">coloured by priority</text>
+  <g font-size="10" font-weight="700" text-anchor="middle">
+    <circle cx="969" cy="195" r="8" fill="#dc2626"/><text x="969" y="199" fill="#ffffff">1</text>
+    <circle cx="991" cy="195" r="8" fill="#f97316"/><text x="991" y="199" fill="#ffffff">2</text>
+    <circle cx="1013" cy="195" r="8" fill="#eab308"/><text x="1013" y="199" fill="#ffffff">3</text>
+    <circle cx="1035" cy="195" r="8" fill="#9ca3af"/><text x="1035" y="199" fill="#ffffff">4</text>
+  </g>
+  <text class="bs" x="1005" y="225" text-anchor="middle">ATAK: UDP multicast</text>
+  <text class="bs" x="1005" y="241" text-anchor="middle">iTAK: TCP, port 8087</text>
+  <text class="bs" x="1005" y="257" text-anchor="middle">+ the pod's own marker</text>
+
+  <!-- packet -->
+  <text class="zl" x="24" y="416">THE 16-BYTE ALERT</text>
+  <text class="tp" x="1092" y="416" text-anchor="end" fill="#64748b">alert.py · struct '&lt;BBhhBBBBBBHBB'</text>
+
+  <g fill="none" stroke="#94a3b8" stroke-width="1.2">
+    <path d="M102,446 V440 H222 V446"/>
+    <path d="M226,446 V440 H532 V446"/>
+    <path d="M536,446 V440 H718 V446"/>
+    <path d="M722,446 V440 H842 V446"/>
+    <path d="M846,446 V440 H1090 V446"/>
+  </g>
+  <text class="grp" x="162" y="434" text-anchor="middle">which pin</text>
+  <text class="grp" x="379" y="434" text-anchor="middle">where</text>
+  <text class="grp" x="627" y="434" text-anchor="middle">how sure, how urgent</text>
+  <text class="grp" x="782" y="434" text-anchor="middle">the person</text>
+  <text class="grp" x="968" y="434" text-anchor="middle">context</text>
+
+  <g text-anchor="middle">
+    <text class="bn" x="131" y="462">0</text>
+    <text class="bn" x="193" y="462">1</text>
+    <text class="bn" x="286" y="462">2–3</text>
+    <text class="bn" x="410" y="462">4–5</text>
+    <text class="bn" x="503" y="462">6</text>
+    <text class="bn" x="565" y="462">7</text>
+    <text class="bn" x="627" y="462">8</text>
+    <text class="bn" x="689" y="462">9</text>
+    <text class="bn" x="751" y="462">10</text>
+    <text class="bn" x="813" y="462">11</text>
+    <text class="bn" x="906" y="462">12–13</text>
+    <text class="bn" x="999" y="462">14</text>
+    <text class="bn" x="1061" y="462">15</text>
+  </g>
+
+  <rect x="24" y="468" width="64" height="58" rx="4" fill="#f1f5f9" stroke="#cbd5e1" stroke-dasharray="4 3"/>
+  <text class="c2" x="56" y="486" text-anchor="middle">radio</text>
+  <text class="c2" x="56" y="500" text-anchor="middle">header</text>
+  <text class="c2" x="56" y="514" text-anchor="middle">4 bytes</text>
+
+  <g fill="#ffffff" stroke="#64748b" stroke-width="1.2">
+    <rect x="100" y="468" width="992" height="58" rx="4"/>
+  </g>
+  <g stroke="#cbd5e1" stroke-width="1">
+    <line x1="162" y1="468" x2="162" y2="526"/><line x1="224" y1="468" x2="224" y2="526"/>
+    <line x1="348" y1="468" x2="348" y2="526"/><line x1="472" y1="468" x2="472" y2="526"/>
+    <line x1="534" y1="468" x2="534" y2="526"/><line x1="596" y1="468" x2="596" y2="526"/>
+    <line x1="658" y1="468" x2="658" y2="526"/><line x1="720" y1="468" x2="720" y2="526"/>
+    <line x1="782" y1="468" x2="782" y2="526"/><line x1="844" y1="468" x2="844" y2="526"/>
+    <line x1="968" y1="468" x2="968" y2="526"/><line x1="1030" y1="468" x2="1030" y2="526"/>
+  </g>
+  <g text-anchor="middle">
+    <text class="c1" x="131" y="492">type</text><text class="c2" x="131" y="509">+ version</text>
+    <text class="c1" x="193" y="492">pin</text><text class="c2" x="193" y="509">P1–P255</text>
+    <text class="c1" x="286" y="492">x (east)</text><text class="c2" x="286" y="509">int16 · dm or m</text>
+    <text class="c1" x="410" y="492">y (north)</text><text class="c2" x="410" y="509">int16 · dm or m</text>
+    <text class="c1" x="503" y="492">r95</text><text class="c2" x="503" y="509">radius</text>
+    <text class="c1" x="565" y="492">state</text><text class="c2" x="565" y="509">+ 4 flags</text>
+    <text class="c1" x="627" y="492">conf</text><text class="c2" x="627" y="509">c × 255</text>
+    <text class="c1" x="689" y="492">prio</text><text class="c2" x="689" y="509">+ class</text>
+    <text class="c1" x="751" y="492">breaths</text><text class="c2" x="751" y="509">per min</text>
+    <text class="c1" x="813" y="492">SOS</text><text class="c2" x="813" y="509">answer</text>
+    <text class="c1" x="906" y="492">last heard</text><text class="c2" x="906" y="509">seconds ago</text>
+    <text class="c1" x="999" y="492">battery</text><text class="c2" x="999" y="509">percent</text>
+    <text class="c1" x="1061" y="492">off-trail</text><text class="c2" x="1061" y="509">metres</text>
+  </g>
+
+  <text class="cap" x="24" y="556">Types: 1 track · 2 SOS · 3 confirmed person · 4 heartbeat (the pod's own position). lora_rx keeps a packet only if it's addressed pod → laptop, is 16 bytes and has a known version.</text>
+  <text class="cap" x="24" y="580" font-weight="600" style="fill:#b91c1c">Never in a packet: a device address, a beacon ID, payload bytes, or the missing person's details.</text>
+</svg>

@@ -1,0 +1,221 @@
+# PARK profile: park-scale, realistic view. Real Acadia trails around Blackwoods
+# Campground (OpenStreetMap), laptop only, fed by tools/fake_bus.py now and sim.py later.
+# The pod never runs this file; afterglow.toml is the demo profile.
+#
+#     AFTERGLOW_CONFIG=park.toml .venv/bin/python tools/fake_bus.py --speed 10
+#
+# Same keys as afterglow.toml (tests/test_parkmap.py checks), so add a new key to both.
+
+[mission]
+name = "Acadia NP, Blackwoods"   # shown in the dashboard header
+# Blackwoods Campground, Acadia NP: the launch point for the park scenario.
+origin_lat = 44.3091
+origin_lon = -68.2056
+salt = ""
+
+[mqtt]
+host = "localhost"
+port = 1883
+
+[serial]
+# Not used in this profile (no pod hardware); kept so both profiles have the same keys.
+omni = "/dev/ttyAMA0"
+wifi = "/dev/ttyAMA3"
+gps = ""
+esp_baud = 921600
+gps_baud = 38400
+radar = "/dev/radar"
+
+[i2c]
+# Not used in this profile; kept so both profiles have the same keys.
+imu_addr = 0x4B
+
+[thermal]
+# Same as afterglow.toml (thermal.py --fake works with either profile).
+device = "/dev/thermal"
+fps = 4
+rotate = 0
+flip = false
+hot_min_c = 30.0
+hot_max_c = 45.0
+hot_rise_c = 5.0
+hot_z = 6.0
+max_alt_m = 30.0
+# HT-203U raw heat -> degrees C = (raw + drift) / raw_per_c - raw_offset_c (check Sat 7 Nov:
+# a wall read 5101, a palm 5303). The offset is set so the wall reads 22 C; redo it against a known temperature.
+raw_per_c = 16.0
+raw_offset_c = 296.8
+# The raw values sag as the camera warms (a wall: 5101 at sensor 22.5 C, 4998 at 24.7 C): add
+# raw_sensor_k counts per degree of sensor temperature above raw_sensor_ref_c (header word 0).
+raw_sensor_k = 47.7
+raw_sensor_ref_c = 22.5
+# Even so the HT-203U's absolute reading drifts (a wall read 16 C after warm-up). false: shift each frame
+# so its median (the background) reads ambient_c; a person still stands out by the same degrees, so
+# the hot band above keeps working and max_c is approximate. true: trust the calibration above.
+absolute = false
+ambient_c = 22.0           # indoors; set to the air temperature outdoors
+
+[camera]
+# Same as afterglow.toml (camera.py --fake works with either profile).
+fps = 2
+sensor_fps = 10
+width = 1280
+height = 720
+quality = 80
+rotate = 0
+flip = false
+
+[lora]
+# Same radio settings as afterglow.toml, so lora_rx.py works with either profile.
+freq_mhz = 915.0
+sf = 7
+bw_hz = 125000
+cr = 5
+preamble = 8
+tx_power_dbm = 13
+pod_node = 0xA1
+laptop_node = 0xA2
+cs_gpio = 18
+reset_gpio = 25
+rx_port = ""
+rx_baud = 115200
+repeat_s = 5
+alert_version = 2          # metres: park-scale pins can be farther than 25.5 m
+off_file = "runs/lora_off.json"
+
+[pose]
+carry_height_m = 3.0
+publish_hz = 5
+# "gps" = NMEA on [serial] gps (falls back to waypoint taps when gps = ""), "imu" = the BNO086
+# walk along [imu] line, "waypoints" = taps only.
+source = "gps"
+
+[imu]
+# Same keys as afterglow.toml; park doesn't use them (it's simulated).
+line_from = [0.0, 0.0]
+line_to = [10.0, 0.0]
+stride_m = 0.7
+hall_w_m = 3.0
+
+[track]
+# Outdoor placeholders from docs/CONTRACTS.md until ME 2's range test.
+localized_r95_m = 25.0
+pinned_r95_m = 10.0
+pass_gap_s = 10
+rotate_window_s = 60
+rotate_match_m = 80.0
+with_drone_rssi = -55
+with_drone_move_m = 30.0
+rssi_p0 = -48.0
+rssi_p0_sd = 6.0
+rssi_n = 2.4
+rssi_sigma = 4.0
+
+[rules]
+offtrail_m = 30
+min_passes = 2
+pin_hold_s = 5             # short for the quick demo (afterglow.toml keeps 15)
+sos_r95_m = 30.0
+thermal_near_m = 10.0
+night_start = "21:00"
+night_end = "06:00"
+pins_file = "runs/pins_park.json"   # its own file, so the two profiles never mix pins
+pins_max_age_min = 60
+trails_geojson = "data/park_trails.geojson"   # tools/make_park_map.py writes both
+zones_geojson = "data/park_zones.geojson"
+building_geojson = ""      # no building outdoors (the TV's Live tab shows the park map's bounds)
+
+[locate]
+cell_m = 10.0
+detect_m = 40.0
+# A small search box from Gorham Mountain lot south along Ocean Path (30 x 46 cells), so a sweep
+# takes minutes, not hours. The whole park map would be 221 x 211, too big to send every second.
+area_m = [1000.0, 400.0, 1300.0, 860.0]
+stale_s = 30
+
+[plan]
+# planner.py -> ag/plan, at park scale. Placeholders until ME 2's range test.
+alt_m = 40.0               # patrol and grid legs (under the 120 m limit)
+homing_alt_m = 25.0        # homing legs, low for the thermal and camera check
+cross_m = 30.0             # homing: the crossing pass runs this far past the pin; the first orbit is at most this wide
+min_orbit_m = 20.0         # homing: no orbit tighter than this
+lane_m = 60.0              # grid: lanes at most this far apart; under 2 x [locate] detect_m, so they overlap
+patrol_m = 1200.0          # patrol: fly this much of the trail, from where it passes nearest the pod; 0 = all of it
+arrive_m = 10.0            # a leg counts as flown with the pod this close to its end; keep it under min_orbit_m
+
+[health]
+# health.py -> ag/sys for the dashboard's Pod panel. It never opens a radio, port or camera.
+period_s = 5               # publish this often
+stale_s = 30               # a part (omni, wifi, thermal, camera, GPS fix) counts as working if heard within this
+
+[http]
+port = 8081                # not 8080, so it runs next to the State Street demo (afterglow.toml) on the laptop
+live_dir = "live/park"     # the simulation's fake pictures, apart from the real pod's (afterglow.toml: live)
+snaps_dir = "snaps"
+# Same as afterglow.toml: the TV's location tabs.
+sites = [
+  { name = "Acadia NP", tag = "simulation", profile = "park", port = 8081, pod = false },
+  { name = "60 State St", tag = "live demo", profile = "afterglow", port = 8080, pod = true },
+]
+
+[atak]
+# Same as afterglow.toml. The markers land around this profile's origin (Blackwoods).
+send_to = ["udp://239.2.3.1:6969"]
+iface = ""
+tcp_port = 8087
+stale_s = 120
+repeat_s = 5
+pod_every_s = 2
+circles = true
+
+[search]
+# Trail pathing on the TV dashboard (tv.html). SAMPLE car parks and trail popularity until we
+# have the published trail-use data. The case is saved under runs/, never on the bus or LoRa.
+case_file = "runs/case_park.json"
+corridor_m = 40.0
+segment_m = 600.0          # search the first 600 m of the trail from the car
+near_m = 800.0
+default_popularity = 0.1
+entrance_xy = [0.0, -470.0]   # Blackwoods Campground entrance
+car_parks = [
+  { name = "Gorham Mountain lot", x = 1150.0, y = 820.0 },
+  { name = "Otter Point lot", x = 1080.0, y = -250.0 },
+  { name = "Blackwoods trailhead lot", x = 150.0, y = 110.0 },
+  { name = "Otter Cove lot", x = 1045.0, y = 880.0 },
+  { name = "Cadillac South Ridge lot", x = -120.0, y = -400.0 },   # the trailhead by Blackwoods Campground: shows off trail following
+]
+popularity = { "Ocean Path" = 1.0, "Gorham Mountain Trail" = 0.75, "Cadillac South Ridge Trail" = 0.5, "Cadillac Cliffs Path" = 0.35, "Quarry Trail" = 0.3, "Otter Cove Trail" = 0.3, "Cadillac South Ridge Trail Access" = 0.15, "Sea Path" = 0.1 }
+
+# After "team on the way", the TV asks for a check-in on the found person this often (seconds),
+# and the fake pod flies one. The drone never decides: the pilot flies the real check-in.
+checkin_s = 300.0
+
+[sim]
+# Lanes over the search box ([locate] area_m).
+# A dumb stand-in path; real routes come from planner.py.
+path = "lanes"
+speed_mps = 14.0           # quick for the demo: after Send out, the false signal pings in about 1:15, the person about 1 minute later (local_stack --seed 6)
+height_m = 15.0
+lane_m = 40.0
+lanes_from = "north" # start the lanes by Gorham Mountain lot (the north edge)
+area_m = []
+rssi_p0 = -48.0
+rssi_n = 2.4
+rssi_sigma = 4.0
+rssi_floor = -98.0
+checkin_dwell_s = 30.0     # each [search] checkin_s, the fake pod circles the found person this long, then goes back to its sweep
+# local_stack.py: the drone waits here, on the ground with its scanners off, until the ranger
+# presses "Send out" on the TV; "Return to base" flies it back. Then the lanes above.
+base_xy = [1150.0, 820.0]
+base_name = "Gorham Mountain lot"
+# Two things to find, so the map stays readable: a false signal first, then the person. Off-trail distances measured with
+# parkmap.dist_to_trail (trails and roads).
+phones = [
+  { name = "airtag_lost", cls = "findmy", x = 1215.0, y = 795.0 },                 # a false signal first: a dropped AirTag 40 m off Ocean Path, ~30 m along from the lot, nobody with it
+  { name = "dead_iphone", cls = "findmy", x = 1220.0, y = 690.0, person = true },   # the missing person: 40 m off Ocean Path, ~140 m along from Gorham Mountain lot
+  { name = "hiker_ridge", cls = "findmy", x = -385.0, y = -205.0, person = true },  # only trail following finds them: 38 m off Cadillac South Ridge Trail, ~330 m from its lot
+  { name = "team_phone",  cls = "findmy" },
+]
+
+# No taped waypoints outdoors.
+[waypoints]

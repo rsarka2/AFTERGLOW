@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="676" viewBox="0 0 1120 676" role="img" aria-label="Pod hardware. A Raspberry Pi 5 sits in the middle, powered by a 5 volt 3 amp USB-C power bank. On the left: the OMNI Bluetooth scanner on UART0, the WIFI board with the SOS page on UART3, the GPS on UART2 (off indoors) and the HT-203U thermal camera on USB. On the right: the RFM95W LoRa radio on SPI1, the BNO086 IMU on I2C, Camera Module 3 on CSI and the radar on USB (tier 3, not built). Below: the AI HAT+ on PCIe (stretch goal).">
+  <title>AFTERGLOW pod hardware</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/></marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #1e293b; }
+    .h1 { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13.5px; fill: #64748b; }
+    .zl { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; fill: #64748b; }
+    .bt { font-size: 13.5px; font-weight: 600; }
+    .bs { font-size: 12px; fill: #475569; }
+    .bus { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; fill: #1e293b; font-weight: 600; }
+    .dev { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; fill: #64748b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .o { fill: #c2410c; }
+    .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.3; }
+    .off { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.3; stroke-dasharray: 5 4; }
+    .e { fill: none; stroke: #475569; stroke-width: 1.6; }
+    .ed { fill: none; stroke: #94a3b8; stroke-width: 1.6; stroke-dasharray: 5 4; }
+    .eo { fill: none; stroke: #c2410c; stroke-width: 2.4; }
+    .cap { font-size: 12.5px; fill: #64748b; }
+  </style>
+
+  <rect width="1120" height="676" fill="#ffffff"/>
+  <text class="h1" x="24" y="42">The pod · hardware</text>
+  <text class="sub" x="24" y="66">Each part has its own link to the Raspberry Pi 5. Dashed parts are wired or planned, but not used in the indoor demo.</text>
+
+  <!-- power -->
+  <rect class="box" x="460" y="90" width="200" height="48" rx="8"/>
+  <text class="bt" x="560" y="110" text-anchor="middle">USB-C power bank</text>
+  <text class="bs" x="560" y="127" text-anchor="middle">5 V · 3 A</text>
+  <path class="e" d="M560,138 V174" marker-end="url(#a)"/>
+  <text class="bus" x="568" y="161">USB-C</text>
+
+  <!-- Pi -->
+  <rect x="412" y="176" width="296" height="344" rx="12" fill="#eef2f7" stroke="#64748b" stroke-width="1.8"/>
+  <text class="bt" x="560" y="208" text-anchor="middle" font-size="16.5">Raspberry Pi 5 · 16 GB</text>
+  <text class="bs" x="560" y="227" text-anchor="middle">Active Cooler · Pi OS Bookworm</text>
+  <line x1="432" y1="243" x2="688" y2="243" stroke="#cbd5e1"/>
+  <text class="zl" x="560" y="266" text-anchor="middle">RUNS ON THE PI</text>
+  <text x="560" y="290" text-anchor="middle" font-size="13">Mosquitto MQTT broker</text>
+  <text class="mono" x="560" y="313" text-anchor="middle" font-size="12">bridge · position · tracker</text>
+  <text class="mono" x="560" y="331" text-anchor="middle" font-size="12">locate · geofence · planner</text>
+  <text class="mono" x="560" y="349" text-anchor="middle" font-size="12">thermal · camera · health</text>
+  <text class="mono" x="560" y="367" text-anchor="middle" font-size="12">lora_out · dashboard</text>
+  <text class="bs" x="560" y="393" text-anchor="middle">one systemd service each,</text>
+  <text class="bs" x="560" y="409" text-anchor="middle">started at boot, restarted on failure</text>
+  <line x1="432" y1="430" x2="688" y2="430" stroke="#cbd5e1"/>
+  <text class="mono" x="560" y="456" text-anchor="middle" font-size="12">tools/check_hw.py</text>
+  <text class="bs" x="560" y="474" text-anchor="middle">PASS / FAIL / SKIP for every part</text>
+
+  <!-- left column -->
+  <rect class="box" x="32" y="200" width="230" height="60" rx="8"/>
+  <text class="bt" x="147" y="224" text-anchor="middle">OMNI · XIAO ESP32S3</text>
+  <text class="bs" x="147" y="242" text-anchor="middle">passive Bluetooth scanner</text>
+  <path class="e" d="M262,230 H410" marker-end="url(#a)"/>
+  <text class="bus" x="337" y="222" text-anchor="middle">UART0 · 921600</text>
+  <text class="dev" x="337" y="246" text-anchor="middle">/dev/ttyAMA0</text>
+
+  <rect class="box" x="32" y="290" width="230" height="60" rx="8"/>
+  <text class="bt" x="147" y="314" text-anchor="middle">WIFI · XIAO ESP32S3</text>
+  <text class="bs" x="147" y="332" text-anchor="middle">Wi-Fi listener + SOS page</text>
+  <path class="e" d="M264,320 H410" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="bus" x="337" y="312" text-anchor="middle">UART3 · 921600</text>
+  <text class="dev" x="337" y="336" text-anchor="middle">/dev/ttyAMA3</text>
+
+  <rect class="off" x="32" y="380" width="230" height="60" rx="8"/>
+  <text class="bt" x="147" y="404" text-anchor="middle">GPS · NEO-F10N</text>
+  <text class="bs" x="147" y="422" text-anchor="middle">works; no fix indoors, so off</text>
+  <path class="ed" d="M262,410 H410" marker-end="url(#a)"/>
+  <text class="bus" x="337" y="402" text-anchor="middle">UART2 · 38400</text>
+  <text class="dev" x="337" y="426" text-anchor="middle">/dev/ttyAMA2</text>
+
+  <rect class="box" x="32" y="460" width="230" height="60" rx="8"/>
+  <text class="bt" x="147" y="484" text-anchor="middle">Thermal · HTI HT-203U</text>
+  <text class="bs" x="147" y="502" text-anchor="middle">256 × 192, real temperatures</text>
+  <path class="e" d="M262,490 H410" marker-end="url(#a)"/>
+  <text class="bus" x="337" y="482" text-anchor="middle">USB</text>
+  <text class="dev" x="337" y="506" text-anchor="middle">V4L2 video</text>
+
+  <!-- right column -->
+  <rect class="box" x="858" y="200" width="230" height="60" rx="8" stroke="#c2410c" stroke-width="1.6"/>
+  <text class="bt" x="973" y="224" text-anchor="middle">LoRa · RFM95W</text>
+  <text class="bs o" x="973" y="242" text-anchor="middle">915 MHz → the laptop's SDR</text>
+  <path class="eo" d="M708,230 H856" marker-end="url(#ao)"/>
+  <text class="bus" x="783" y="222" text-anchor="middle">SPI1</text>
+  <text class="dev" x="783" y="246" text-anchor="middle">/dev/spidev1.0</text>
+
+  <rect class="box" x="858" y="290" width="230" height="60" rx="8"/>
+  <text class="bt" x="973" y="314" text-anchor="middle">IMU · BNO086</text>
+  <text class="bs" x="973" y="332" text-anchor="middle">steps → position indoors</text>
+  <path class="e" d="M858,320 H710" marker-end="url(#a)"/>
+  <text class="bus" x="783" y="312" text-anchor="middle">I²C-1</text>
+  <text class="dev" x="783" y="336" text-anchor="middle">address 0x4B</text>
+
+  <rect class="box" x="858" y="380" width="230" height="60" rx="8"/>
+  <text class="bt" x="973" y="404" text-anchor="middle">Camera Module 3</text>
+  <text class="bs" x="973" y="422" text-anchor="middle">live view for the ranger</text>
+  <path class="e" d="M858,410 H710" marker-end="url(#a)"/>
+  <text class="bus" x="783" y="402" text-anchor="middle">CSI</text>
+  <text class="dev" x="783" y="426" text-anchor="middle">ribbon cable</text>
+
+  <rect class="off" x="858" y="460" width="230" height="60" rx="8"/>
+  <text class="bt" x="973" y="484" text-anchor="middle">Radar · MR60BHA2</text>
+  <text class="bs" x="973" y="502" text-anchor="middle">tier 3, not built</text>
+  <path class="ed" d="M858,490 H710" marker-end="url(#a)"/>
+  <text class="bus" x="783" y="482" text-anchor="middle">USB</text>
+  <text class="dev" x="783" y="506" text-anchor="middle">/dev/radar</text>
+
+  <!-- bottom -->
+  <path class="ed" d="M560,522 V554" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="bus" x="568" y="543">PCIe</text>
+  <rect class="off" x="460" y="556" width="200" height="52" rx="8"/>
+  <text class="bt" x="560" y="577" text-anchor="middle">AI HAT+ · Hailo-8</text>
+  <text class="bs" x="560" y="595" text-anchor="middle">stretch: person detection</text>
+
+  <!-- legend -->
+  <rect class="box" x="24" y="640" width="28" height="16" rx="3"/>
+  <text class="cap" x="60" y="653">in the demo</text>
+  <rect class="off" x="160" y="640" width="28" height="16" rx="3"/>
+  <text class="cap" x="196" y="653">wired or planned, not in the demo</text>
+  <line x1="420" y1="648" x2="452" y2="648" stroke="#c2410c" stroke-width="2.4"/>
+  <text class="cap" x="460" y="653">LoRa out: the 16-byte alert to the laptop</text>
+  <text class="cap" x="1096" y="653" text-anchor="end">Pins: docs/HARDWARE.md · docs/wiring/pins.csv</text>
+</svg>

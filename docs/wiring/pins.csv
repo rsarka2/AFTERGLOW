@@ -1,0 +1,33 @@
+pi_pin,signal,gpio,linux,goes_to,suggested_colour
+1,3.3V,,,IMU 3V3,red
+2,5V,,,OMNI 5V and WIFI 5V (Y-lead),red
+3,SDA,GPIO2,i2c-1,IMU SDA,blue
+4,5V,,,GPS VCC (NEO-F10N; if it takes 5 V),red
+5,SCL,GPIO3,i2c-1,IMU SCL,yellow
+6,GND,,,IMU GND,black
+7,UART2 TX,GPIO4,/dev/ttyAMA2,GPS RX,green
+8,UART0 TX,GPIO14,/dev/ttyAMA0,OMNI D9 (RX),green
+9,GND,,,OMNI GND,black
+10,UART0 RX,GPIO15,/dev/ttyAMA0,OMNI D10 (TX),white
+12,SPI1 CE0,GPIO18,spidev1.0,LoRa CS (driven by code),
+14,GND,,,WIFI GND,black
+15,input,GPIO22,,IMU INT (active low),
+16,output,GPIO23,,IMU RST (active low),
+17,3.3V,,,LoRa VIN,red
+18,input,GPIO24,,LoRa G0 (DIO0),
+21,UART3 RX,GPIO9,/dev/ttyAMA3,WIFI D10 (TX),white
+22,output,GPIO25,,LoRa RST (active low),
+24,UART3 TX,GPIO8,/dev/ttyAMA3,WIFI D9 (RX),green
+27,ID_SD,GPIO0,,AI HAT+ ID chip: do not wire,
+28,ID_SC,GPIO1,,AI HAT+ ID chip: do not wire,
+29,UART2 RX,GPIO5,/dev/ttyAMA2,GPS TX,white
+30,GND,,,GPS GND,black
+35,SPI1 MISO,GPIO19,spidev1.0,LoRa MISO,
+36,SPI1 CS (kernel),GPIO16,,nothing: the kernel's CS after cs0_pin=16; leave free,
+38,SPI1 MOSI,GPIO20,spidev1.0,LoRa MOSI,
+39,GND,,,LoRa GND,black
+40,SPI1 SCLK,GPIO21,spidev1.0,LoRa SCK,
+CSI,camera,,libcamera,Camera Module 3 (22-to-15-pin cable),
+PCIe,PCIe x1,,/dev/hailo0,AI HAT+ (its own ribbon),
+USB,USB 2.0,,/dev/radar (udev),MR60BHA2 radar kit (the only USB device),
+USB-C,5V in,,,USB-C power bank 5 V 3 A,

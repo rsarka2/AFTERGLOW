@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrailSAR Simulator</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+:root{--bg:#0b1220;--panel:#121d30;--panel2:#17243a;--line:#2a3a54;--text:#e8eef8;--muted:#9aabc2;--green:#61d69b;--cyan:#5cc8e8;--amber:#f5bd62;--red:#ff7777}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.45 Inter,system-ui,Segoe UI,Arial,sans-serif}
+header{padding:12px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:17px;margin:0}header p{margin:2px 0 0;color:var(--muted);font-size:11px}
+.tag{border:1px solid #31506b;color:#9ddcf0;border-radius:20px;padding:4px 10px;font-size:11px;white-space:nowrap}
+main{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:12px;padding:12px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.ph{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.5px;font-weight:600;gap:8px}
+.ph .sub{color:var(--muted);font-weight:400}
+.body{padding:10px 12px;display:grid;gap:9px}
+#mapbox{position:relative;height:calc(100vh - 300px);min-height:480px}
+#map{position:absolute;inset:0}
+.overlay{position:absolute;top:10px;left:10px;right:60px;display:flex;gap:8px;z-index:2;flex-wrap:wrap}
+.chip{background:rgba(11,18,32,.88);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px}
+.chip b{color:var(--cyan)}
+#modeChip b{color:var(--amber)}
+.legend{position:absolute;bottom:28px;left:10px;z-index:2;background:rgba(11,18,32,.88);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--muted);display:grid;gap:3px}
+.sw{display:inline-block;width:18px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.side{display:grid;gap:12px;align-content:start}
+label.row{display:flex;justify-content:space-between;align-items:center;color:#c6d3e5;font-size:12px;gap:8px}
+label.row b{color:var(--text)}
+input[type=range]{width:100%;accent-color:var(--cyan);margin:2px 0 0}
+select,button,input[type=time]{background:#20334d;color:var(--text);border:1px solid #38516f;border-radius:7px;padding:7px 9px;font:inherit;font-size:12px}
+select{width:100%}
+button{cursor:pointer}button.primary{background:#176b62;border-color:#258e7d}button.story{background:#5a2d6e;border-color:#a35ec4}button:hover{filter:brightness(1.15)}button:disabled{opacity:.45;cursor:default}
+button.on{background:#7a5a1d;border-color:#f5bd62}
+.actions{display:flex;gap:7px}.actions>*{flex:1}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stat{background:var(--panel2);border-radius:7px;padding:7px 9px}.stat small{display:block;color:var(--muted);font-size:10px}.stat strong{font-size:15px}
+.msg{font-size:11px;color:var(--muted)}
+.event{border-left:3px solid var(--amber);background:#18263a;padding:7px 9px;border-radius:5px;font-size:12px}
+.event.good{border-color:var(--green)}.event.alert{border-color:var(--red)}
+#log{max-height:170px;overflow:auto;font-size:11px;color:#b9c8dc}.logline{padding:4px 0;border-bottom:1px solid #25354b}
+.bcn{display:flex;justify-content:space-between;gap:8px;background:var(--panel2);border-radius:6px;padding:6px 8px;font-size:11px}
+.bcn .k{font-weight:600}.bcn .m{color:var(--muted)}
+.verdict{font-weight:700;font-size:10px;padding:1px 6px;border-radius:9px;margin-left:4px}
+.v-person{background:#ff4d4d;color:#fff}.v-device{background:#44556e;color:#fff}.v-track{background:#7a5a1d;color:#fff}.v-unres{background:#b5562a;color:#fff}
+#bottom{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+#profile{display:block;width:100%;height:170px}
+.tl{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tl h3{margin:0 0 6px;font-size:11px;letter-spacing:.4px;color:var(--muted)}
+.tli{border-left:2px solid #38516f;padding:2px 0 6px 8px;font-size:11.5px}
+.tli b{display:block;font-size:11px;color:var(--cyan)}
+.tli.real b{color:#c79bff}.tli.hot{border-color:var(--red)}.tli.hot b{color:var(--red)}
+.bigline{margin-top:6px;padding:8px 10px;border-radius:7px;background:#1d3b2e;border:1px solid #2f7a57;font-size:12.5px}
+.bmk{width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.4);display:grid;place-items:center;font:700 11px system-ui;color:#fff}
+.bmk.t-person{width:20px;height:20px;background:#ff3b6b!important}
+.bmk.t-device{width:13px;height:13px;border-radius:3px;transform:rotate(45deg);background:#8a97a8!important}
+.bmk.person{animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,107,.9)}100%{box-shadow:0 0 0 22px rgba(255,59,107,0)}}
+#found{position:absolute;inset:0;z-index:5;display:none;place-items:center;background:rgba(120,0,30,.28);animation:flash .5s 3 alternate}
+@keyframes flash{from{background:rgba(255,40,90,.45)}to{background:rgba(120,0,30,.2)}}
+.fcard{background:rgba(11,18,32,.95);border:3px solid #ff3b6b;border-radius:14px;padding:18px 24px;max-width:520px;margin:0 16px;text-align:center;box-shadow:0 0 40px rgba(255,59,107,.6)}
+.ftitle{font-size:28px;font-weight:800;letter-spacing:2px;color:#ff3b6b}
+.fbody{margin:8px 0 14px;font-size:14px;line-height:1.6}.fbody b{color:#fff}
+.fbig{margin-top:8px;padding:8px;border-radius:8px;background:#1d3b2e;border:1px solid #2f7a57;font-size:13px}
+.home{width:18px;height:18px;border-radius:4px;background:var(--green);border:2px solid #fff;font-size:10px;color:#000;display:grid;place-items:center;font-weight:700}
+.maplibregl-popup-content{background:#121d30;color:var(--text);font-size:12px;border:1px solid var(--line)}
+.maplibregl-popup-tip{display:none}
+footer{padding:0 14px 14px;color:var(--muted);font-size:10.5px}
+@media(max-width:1000px){main{grid-template-columns:1fr}#bottom{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+ <div><h1>TrailSAR <span style="color:var(--cyan)">/</span> Post-Closing Drone Sweep Simulator</h1>
+ <p>Real OSM trails · real 3D terrain · BLE/LoRa beacon localisation · thermal + mmWave check · the ranger decides · probability-of-area search</p></div>
+ <span class="tag">LOCAL · V0.3 · STEP 2</span>
+</header>
+<main>
+ <section class="panel">
+  <div class="ph"><span id="areaTitle">MISSION MAP</span><span class="sub" id="missionState">LOAD AN AREA TO BEGIN</span></div>
+  <div id="mapbox">
+   <div id="map"></div>
+   <div class="overlay">
+    <span class="chip">Clock <b id="clock">--:--</b></span>
+    <span class="chip" id="modeChip">Mode <b id="chipMode">READY</b></span>
+    <span class="chip">Drone <b id="chipAlt">—</b></span>
+    <span class="chip">Battery <b id="chipBat">—</b></span>
+    <span class="chip">Hears phone <b id="chipSwath">—</b></span>
+   </div>
+   <div id="found"><div class="fcard"><div class="ftitle">&#128680; LIKELY PERSON · RANGER CONFIRM</div><div class="fbody" id="fbody"></div><button class="primary" id="fcont">Continue mission &#9654;</button></div></div>
+   <div class="legend">
+    <span><i class="sw" style="background:linear-gradient(90deg,#3f7f99,#f5bd62,#ff4d4d)"></i>Trail priority (low → high)</span>
+    <span><i class="sw" style="background:linear-gradient(90deg,#3a1d6e,#f58b2b,#ffe066)"></i>Probability not yet ruled out</span>
+    <span><i class="sw" style="background:#5cc8e8"></i>Planned / flown route</span>
+    <span><i class="sw" style="background:#ff4dd2"></i>Over 120 m AGL</span>
+    <span><i class="dot" style="background:#f5bd62"></i>Beacon packet heard (colour = RSSI)</span>
+    <span><i class="dot" style="background:transparent;border:2px dashed #ff7777"></i>Estimated beacon location</span>
+    <span><i class="dot" style="background:#ff3b6b"></i>Beacon carried by a person (ground truth)</span>
+    <span><i class="dot" style="background:#8a97a8;border-radius:2px;transform:rotate(45deg)"></i>Beacon with no person (decoy / lost item)</span>
+    <span><i class="dot" style="background:#61d69b;width:6px;height:6px;margin-right:2px"></i><i class="dot" style="background:#fff;width:6px;height:6px;margin-right:2px"></i><i class="dot" style="background:#9ddcf0;width:6px;height:6px"></i>Map POIs: trailhead/parking, peak, viewpoint</span>
+   </div>
+  </div>
+ </section>
+
+ <aside class="side">
+  <section class="panel">
+   <div class="ph">1 · PICK A PARK OR FOREST<span class="sub">REAL TRAILS + TERRAIN</span></div>
+   <div class="body">
+    <select id="preset"></select>
+    <div class="msg" id="areaMsg">Loading…</div>
+   </div>
+  </section>
+
+  <section class="panel">
+   <div class="ph">2 · RUN THE MISSION<span class="sub" id="flightSub">—</span></div>
+   <div class="body">
+    <div class="actions"><button class="primary" id="startBtn" disabled>▶ Run mission</button><button id="pauseBtn" disabled>Ⅱ Pause</button><button id="resetBtn" disabled>↺ Restart</button></div>
+    <div class="stats">
+     <div class="stat"><small>LIKELY PEOPLE</small><strong id="s_found">—</strong></div>
+     <div class="stat"><small>FLIGHT TIME</small><strong id="s_ft">—</strong></div>
+     <div class="stat"><small>SEARCH AREA RULED OUT</small><strong id="s_ruled">—</strong></div>
+     <div class="stat"><small>TRAIL SWEPT (PLAN)</small><strong id="s_cov">—</strong></div>
+    </div>
+    <div id="alert" class="event">Pick a park, then press ▶ Run mission.</div>
+   </div>
+  </section>
+
+  <section class="panel">
+   <div class="ph">WHAT THE DRONE IS LISTENING FOR<span class="sub">FIND MY · FIND HUB · SAMSUNG · LoRa</span></div>
+   <div class="body"><div id="blist" style="display:grid;gap:6px"></div>
+    <div class="msg">How it finds someone: hears a phone or tag on the trail sweep → flies toward the strongest signal and pins it down → drops to 25 m and checks with thermal + mmWave → proposes the pin to the ranger, who confirms or clears it. Then it moves on, and finally searches off-trail where lost people usually end up.</div></div>
+  </section>
+
+  <section class="panel">
+   <div class="ph">EVENT LOG<span class="sub">LATEST FIRST</span></div>
+   <div class="body" id="log"></div>
+  </section>
+
+  <!-- Settings are fixed to the values that tested best; kept here (hidden) because the simulation reads them. -->
+  <div hidden>
+   <button id="storyBtn"></button><select id="hikerPos"><option value="off" selected></option><option value="on"></option></select>
+   <select id="radius"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option></select>
+   <select id="exag"><option value="1.5" selected>1.5</option></select><select id="base"><option value="topo">topo</option><option value="sat">sat</option></select>
+   <button id="loadBtn"></button><button id="planBtn"></button><div id="planMsg"></div><div id="endur"></div>
+   <select id="dprof"><option value="c3" selected>c3</option><option value="vtol">vtol</option><option value="small">small</option><option value="custom">custom</option></select>
+   <input type="time" id="closing" value="19:30">
+   <select id="pattern"><option value="center" selected></option><option value="corridor"></option></select>
+   <input type="range" id="cw" min="100" max="400" value="250"><b id="v_cw"></b>
+   <input type="range" id="agl" min="30" max="110" value="40"><b id="v_agl"></b>
+   <input type="range" id="speed" min="4" max="18" value="12"><b id="v_speed"></b>
+   <input type="range" id="climb" min="2" max="8" value="5"><b id="v_climb"></b>
+   <input type="range" id="batt" min="10" max="180" value="55"><b id="v_batt"></b>
+   <input type="range" id="temp" min="-20" max="30" value="15"><b id="v_temp"></b>
+   <input type="checkbox" id="heated" checked>
+   <input type="range" id="sorties" min="1" max="4" value="2"><b id="v_sorties"></b>
+   <select id="onFind"><option value="continue" selected></option><option value="hold"></option><option value="rth"></option></select>
+   <input type="range" id="resv" min="10" max="60" value="45"><b id="v_resv"></b>
+   <input type="range" id="wpop" min="0" max="100" value="75"><b id="v_wpop"></b>
+   <input type="range" id="wrisk" min="0" max="100" value="25"><b id="v_wrisk"></b>
+   <input type="range" id="sens" min="-115" max="-88" value="-110"><b id="v_sens"></b>
+   <input type="range" id="canopy" min="0" max="15" value="4"><b id="v_canopy"></b>
+   <input type="checkbox" id="snow"><input type="checkbox" id="payload" checked>
+   <select id="btype"></select><button id="placeBtn"></button><input type="checkbox" id="pperson" checked>
+   <button id="scenBtn"></button><button id="clearBtn"></button><input type="checkbox" id="truth" checked>
+   <button id="abBtn"></button><input type="range" id="ts" min="1" max="60" value="25"><b id="v_ts"></b>
+   <input type="checkbox" id="poaFollow" checked><input type="checkbox" id="showPoa" checked><input type="checkbox" id="follow" checked>
+   <b id="s_len"></b><b id="s_time"></b><b id="s_hi"></b><b id="s_maxagl"></b><b id="s_link"></b>
+  </div>
+ </aside>
+
+ <div id="bottom">
+  <section class="panel">
+   <div class="ph">ELEVATION PROFILE · PLANNED TRAIL ROUTE<span class="sub">terrain + 30 m buffer · drone altitude · 120 m AGL limit</span></div>
+   <div style="padding:8px 10px"><canvas id="profile"></canvas></div>
+  </section>
+  <section class="panel">
+   <div class="ph">MISSION TIMELINE<span class="sub" id="tlSub">TRAILSAR EVENTS</span></div>
+   <div class="body"><div id="tl"></div></div>
+  </section>
+ </div>
+</main>
+<footer>Research prototype. Trail traffic is a proxy model from OSM features (plus known high-use routes in case presets) — not measured counts. Elevation is a ~10–30 m DEM without trees, towers or wires. RF, thermal and mmWave behaviour are simplified models with assumed parameters. Case-study positions are reconstructions: news reports do not give exact locations. Drone flight in National Parks needs NPS authorization; real operations need FAA compliance and trained SAR oversight. A beacon hit is not proof a person is present.</footer>
+
+<script>
+// ===================== utilities =====================
+const $=id=>document.getElementById(id);
+const R=6371000, D2R=Math.PI/180;
+function hav(a,b){const dLat=(b[1]-a[1])*D2R,dLon=(b[0]-a[0])*D2R;const s=Math.sin(dLat/2)**2+Math.cos(a[1]*D2R)*Math.cos(b[1]*D2R)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(s)));}
+function offset(p,dx,dy){return [p[0]+dx/(R*Math.cos(p[1]*D2R))/D2R,p[1]+dy/R/D2R];}
+function lerp(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];}
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function Phi(x){const t=1/(1+.2316419*Math.abs(x)),d=.3989423*Math.exp(-x*x/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return x>0?1-p:p;}
+function fmtTime(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+'m '+String(s%60).padStart(2,'0')+'s';}
+function km(m){return (m/1000).toFixed(m<10000?2:1)+' km';}
+function log(s,cls){if(S.quiet)return;const d=document.createElement('div');d.className='logline';d.textContent=$('clock').textContent+' · '+s;if(cls)d.style.color=cls;$('log').prepend(d);}
+function alertMsg(s,cls){const a=$('alert');a.className='event '+(cls||'');a.textContent=s;}
+const fc=f=>({type:'FeatureCollection',features:f||[]});
+function circlePoly(c,r,n=40){const ring=[];for(let i=0;i<=n;i++){const a=i/n*2*Math.PI;ring.push(offset(c,r*Math.cos(a),r*Math.sin(a)));}return ring;}
+function squarePoly(c,s){return [offset(c,-s,-s),offset(c,s,-s),offset(c,s,s),offset(c,-s,s),offset(c,-s,-s)];}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ===================== presets =====================
+// Acadia matches the AFTERGLOW live map (code/park.toml): same origin, and the same hidden test
+// phones as its [sim] table, given in metres east/north of the origin.
+const ACADIA_ORIGIN=[44.3091,-68.2056];
+const PRESETS=[
+ {name:'AFTERGLOW · Acadia NP, Blackwoods (ME) — same area as the live map',c:[-68.1990,44.3125],boost:/Ocean Path|Otter Cove|Quarry/i,
+  origin:ACADIA_ORIGIN,settings:{sens:-110,canopy:4,resv:45,agl:40,closing:'19:30'},phones:[
+   {type:'findmy',x:950,y:690,person:true,note:'dead iPhone, hiker off-trail (live-map test phone “dead_iphone”)'},
+   {type:'findmy',x:1130,y:780,person:false,note:'AirTag on a dropped pack, no person (live-map test phone “airtag_pack”)'},
+   {type:'google',x:640,y:960,person:true,note:'switched-off Pixel near a trail (live-map test phone “pixel_off”)'}]},
+ {name:'CASE STUDY · Quandary Peak 14er (CO) — Jan 2026 night rescue, replayed',c:[-106.0850,39.3900],boost:/Quandary/i,story:'quandary'},
+ {name:'CASE STUDY · Devil\'s Head, Pike National Forest (CO) — 2 lost hikers + dog',c:[-105.1010,39.2650],boost:/Devil.?s Head/i},
+ {name:'Rocky Mountain NP — Bear Lake trailhead (CO)',c:[-105.6455,40.3122]},
+ {name:'Great Smoky Mountains NP — Clingmans Dome (TN/NC)',c:[-83.4960,35.5568]},
+ {name:'Yosemite NP — Happy Isles / Mist Trail (CA)',c:[-119.5578,37.7322]},
+ {name:'White Mountain NF — Pinkham Notch / Tuckerman (NH)',c:[-71.2530,44.2571]},
+ {name:'Olympic NP — Hurricane Ridge (WA)',c:[-123.4985,47.9695]},
+ {name:'Zion NP — The Grotto / Angels Landing (UT)',c:[-112.9508,37.2593]}
+];
+PRESETS.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;$('preset').appendChild(o);});
+
+// ===================== beacon types / RF model =====================
+const BT={
+ findmy:{label:'Apple Find My (separated / offline)',sig:'4C 00 12 19',radio:'BLE',tx:-59,n:2.0,color:'#f5bd62'},
+ google:{label:'Google Find Hub',sig:'0xFEAA',radio:'BLE',tx:-59,n:2.0,color:'#7fb3ff'},
+ samsung:{label:'Samsung lost mode',sig:'0xFD69',radio:'BLE',tx:-59,n:2.0,color:'#c79bff'},
+ ref:{label:'Reference beacon',sig:'REF / LoRa',radio:'LoRa',tx:-26,n:2.3,color:'#61d69b',sensLoRa:-125}
+};
+Object.entries(BT).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.label+' ('+v.sig+')';$('btype').appendChild(o);});
+const PDET=0.85, SIG=4, BODY_LOSS=6, ASSUMED_LOSS=4; // estimator assumes a typical pocket loss, truth uses BODY_LOSS // per-second packet capture prob when above sensitivity; RSSI noise (dB)
+function sens(t){return t.radio==='LoRa'?t.sensLoRa:+$('sens').value;}
+function rssiMean(t,d,extra){return t.tx-10*t.n*Math.log10(Math.max(1,d))-extra;}
+function swath(t,agl){const dmax=10**((t.tx-(+$('canopy').value)-sens(t))/(10*t.n));return dmax>agl?Math.sqrt(dmax*dmax-agl*agl):0;}
+// probability the drone hears a BLE beacon at 3D distance d in one second (used by the estimators)
+function pdBLE(d){const m=-59-20*Math.log10(Math.max(1,d))-(+$('canopy').value)-ASSUMED_LOSS;return PDET*Phi((m-(+$('sens').value))/SIG);}
+
+// ===================== DEM sampler (terrarium tiles) =====================
+const DEM={z:14,tiles:new Map(),
+ tp(lon,lat){const n=2**this.z,lr=lat*D2R;return [(lon+180)/360*n,(1-Math.log(Math.tan(lr)+1/Math.cos(lr))/Math.PI)/2*n];},
+ async load(b){const [x0,y0]=this.tp(b[0],b[3]),[x1,y1]=this.tp(b[2],b[1]);const jobs=[];
+  for(let x=Math.floor(x0);x<=Math.floor(x1);x++)for(let y=Math.floor(y0);y<=Math.floor(y1);y++)if(!this.tiles.has(x+'/'+y))jobs.push(this.fetch(x,y));
+  await Promise.all(jobs);},
+ fetch(x,y){return new Promise(res=>{const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.drawImage(img,0,0);const d=g.getImageData(0,0,256,256).data;const h=new Float32Array(65536);for(let i=0;i<65536;i++)h[i]=d[i*4]*256+d[i*4+1]+d[i*4+2]/256-32768;this.tiles.set(x+'/'+y,h);res();};
+  img.onerror=()=>res();img.src=`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${this.z}/${x}/${y}.png`;});},
+ px(x,y){const tx=Math.floor(x/256),ty=Math.floor(y/256),t=this.tiles.get(tx+'/'+ty);if(!t)return NaN;return t[(y-ty*256)*256+(x-tx*256)];},
+ elev(lon,lat){const [fx,fy]=this.tp(lon,lat);const X=fx*256-.5,Y=fy*256-.5,x0=Math.floor(X),y0=Math.floor(Y),dx=X-x0,dy=Y-y0;
+  const a=this.px(x0,y0),b=this.px(x0+1,y0),c=this.px(x0,y0+1),d=this.px(x0+1,y0+1);return a*(1-dx)*(1-dy)+b*dx*(1-dy)+c*(1-dx)*dy+d*dx*dy;},
+ safe(p){const e=this.elev(p[0],p[1]);return isFinite(e)?e:0;},
+ buf(p){let m=this.safe(p);for(const [dx,dy] of [[30,0],[-30,0],[0,30],[0,-30]]){const e=this.elev(...offset(p,dx,dy));if(e>m)m=e;}return m;},
+ slopeDeg(p){const e=this.elev(...offset(p,15,0))-this.elev(...offset(p,-15,0)),n=this.elev(...offset(p,0,15))-this.elev(...offset(p,0,-15));return Math.atan(Math.hypot(e,n)/30)/D2R;}
+};
+
+// ===================== state =====================
+const S={bbox:null,center:null,preset:null,segs:[],nodes:[],pois:[],launch:null,home:null,route:null,beacons:[],dets:[],placing:false,
+ sim:{running:false,t:0,last:0},d:null,trail:[],events:[],queue:[],active:null,markers:[],poa:null,story:null};
+
+// ===================== map =====================
+const map=new maplibregl.Map({container:'map',center:PRESETS[0].c,zoom:12.6,pitch:62,bearing:-25,maxPitch:85,
+ style:{version:8,
+  sources:{
+   topo:{type:'raster',tiles:['https://a.tile.opentopomap.org/{z}/{x}/{y}.png','https://b.tile.opentopomap.org/{z}/{x}/{y}.png','https://c.tile.opentopomap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:17,attribution:'© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)'},
+   sat:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:'Imagery © Esri'},
+   dem:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,maxzoom:15,encoding:'terrarium',attribution:'Terrain: AWS Terrain Tiles'},
+   demh:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,maxzoom:15,encoding:'terrarium'}},
+  layers:[{id:'topo',type:'raster',source:'topo'},{id:'sat',type:'raster',source:'sat',layout:{visibility:'none'}},
+   {id:'hill',type:'hillshade',source:'demh',paint:{'hillshade-exaggeration':0.3}}],
+  terrain:{source:'dem',exaggeration:1.5}}});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-right');
+new ResizeObserver(()=>map.resize()).observe($('mapbox'));
+const poaCanvas=document.createElement('canvas');poaCanvas.width=poaCanvas.height=2;
+
+map.on('load',()=>{
+ const add=id=>map.addSource(id,{type:'geojson',data:fc()});
+ ['area','trails','pois','route','flown','dets','foot','drone','est'].forEach(add);
+ map.addLayer({id:'area',type:'line',source:'area',paint:{'line-color':'#9ddcf0','line-width':1.5,'line-dasharray':[3,3],'line-opacity':.7}});
+ map.addLayer({id:'trails-casing',type:'line',source:'trails',paint:{'line-color':'#0b1220','line-width':['interpolate',['linear'],['get','prio'],0,3,1,7],'line-opacity':.55}});
+ map.addLayer({id:'trails',type:'line',source:'trails',layout:{'line-cap':'round'},paint:{'line-width':['interpolate',['linear'],['get','prio'],0,1.5,1,5],
+  'line-color':['interpolate',['linear'],['get','prio'],0,'#3f7f99',0.5,'#f5bd62',1,'#ff4d4d']}});
+ map.addLayer({id:'pois',type:'circle',source:'pois',paint:{'circle-radius':4,'circle-color':['match',['get','kind'],'trailhead','#61d69b','parking','#61d69b','peak','#ffffff','viewpoint','#9ddcf0','#d6bd83'],'circle-stroke-color':'#0b1220','circle-stroke-width':1}});
+ map.addLayer({id:'route',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':2,'line-dasharray':[2,1.5],'line-opacity':.8,'line-color':['match',['get','st'],'high','#ff4dd2','#5cc8e8']}});
+ map.addLayer({id:'flown',type:'line',source:'flown',layout:{'line-cap':'round','line-join':'round'},paint:{'line-width':3.5,'line-color':'#5cc8e8'}});
+ map.addLayer({id:'foot',type:'fill',source:'foot',paint:{'fill-color':'#5cc8e8','fill-opacity':.13}});
+ map.addLayer({id:'foot-line',type:'line',source:'foot',paint:{'line-color':'#5cc8e8','line-width':1,'line-opacity':.6}});
+ map.addLayer({id:'est',type:'line',source:'est',paint:{'line-color':['get','color'],'line-width':2.5,'line-dasharray':[2,1.5]}});
+ map.addLayer({id:'dets',type:'circle',source:'dets',paint:{'circle-radius':4,'circle-stroke-width':1,'circle-stroke-color':'#0b1220',
+  'circle-color':['interpolate',['linear'],['get','rssi'],-112,'#3b6bd6',-95,'#f5bd62',-75,'#ff3b3b']}});
+ map.addLayer({id:'drone',type:'fill-extrusion',source:'drone',paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-base':['get','base'],'fill-extrusion-height':['get','top'],'fill-extrusion-opacity':.95}});
+ map.on('click','trails',e=>{if(S.placing)return;const p=e.features[0].properties;new maplibregl.Popup({closeButton:false}).setLngLat(e.lngLat)
+  .setHTML(`<b>${p.name||'Unnamed '+p.hw}</b><br>Est. traffic: ${(+p.pop).toFixed(2)} · Terrain risk: ${(+p.risk).toFixed(2)}<br>Priority: ${(+p.prio).toFixed(2)} · ${km(+p.len)}${p.sac?'<br>SAC scale: '+p.sac:''}`).addTo(map);});
+ map.on('mouseenter','trails',()=>map.getCanvas().style.cursor='pointer');
+ map.on('mouseleave','trails',()=>map.getCanvas().style.cursor='');
+ map.on('click',e=>{if(!S.placing)return;addBeacon($('btype').value,[e.lngLat.lng,e.lngLat.lat],$('pperson').checked&&$('btype').value!=='ref','placed manually');setPlacing(false);});
+ $('loadBtn').disabled=false;$('loadBtn').textContent='Load trails + terrain';$('storyBtn').disabled=false;
+ log('Map ready.');
+ loadPreset();
+});
+
+// ===================== controls =====================
+const UNITS={sorties:'',cw:' m',agl:' m',speed:' m/s',climb:' m/s',batt:' min',temp:' °C',resv:'%',wpop:'%',wrisk:'%',sens:' dBm',canopy:' dB',ts:'×'};
+Object.keys(UNITS).forEach(id=>{const f=()=>{$('v_'+id).textContent=$(id).value+UNITS[id];};$(id).addEventListener('input',f);f();});
+function syncLabels(){Object.keys(UNITS).forEach(id=>$('v_'+id).textContent=$(id).value+UNITS[id]);}
+['sorties','heated','cw','pattern','agl','speed','climb','batt','temp','resv','wpop','wrisk'].forEach(id=>$(id).addEventListener('change',()=>{if(S.segs.length&&!S.sim.running)planRoute();}));
+['sens','canopy'].forEach(id=>$(id).addEventListener('input',updateSwathChip));
+$('exag').onchange=()=>map.setTerrain({source:'dem',exaggeration:+$('exag').value});
+$('base').onchange=()=>{const s=$('base').value==='sat';map.setLayoutProperty('sat','visibility',s?'visible':'none');map.setLayoutProperty('topo','visibility',s?'none':'visible');};
+$('preset').onchange=()=>loadPreset();
+// The settings that tested best, applied to every park (the case study sets its own conditions on top)
+const DEFAULTS={agl:40,speed:12,climb:5,batt:55,temp:15,sorties:2,resv:45,wpop:75,wrisk:25,sens:-110,canopy:4,ts:25,cw:250};
+function applyDefaults(){for(const [k,v] of Object.entries(DEFAULTS))$(k).value=v;$('closing').value='19:30';$('snow').checked=false;
+ $('dprof').value='c3';$('heated').checked=true;$('pattern').value='center';$('onFind').value='continue';$('hikerPos').value='off';syncLabels();}
+async function loadPreset(){
+ if(!map.getSource('area'))return; // map still starting: its 'load' handler calls this with the chosen park
+ const p=PRESETS[+$('preset').value];S.sim.running=false;
+ $('startBtn').disabled=true;$('alert').className='event';$('alert').textContent='Loading real trails and terrain…';
+ if(p.story==='quandary')await runQuandaryStory();
+ else{applyDefaults();if(await loadArea())alertMsg(`${p.name.split('—')[0].trim()}: route planned along the busiest, riskiest trails. Press ▶ Run mission.`);}
+ if(S.route)$('startBtn').disabled=false;}
+$('truth').onchange=()=>S.beacons.forEach(showMarker);
+$('showPoa').onchange=()=>{if(map.getLayer('poa'))map.setLayoutProperty('poa','visibility',$('showPoa').checked?'visible':'none');};
+$('loadBtn').onclick=()=>loadArea();
+$('storyBtn').onclick=runQuandaryStory;
+$('planBtn').onclick=planRoute;
+$('placeBtn').onclick=()=>setPlacing(!S.placing);
+$('scenBtn').onclick=autoScenario;
+$('clearBtn').onclick=()=>{S.beacons.forEach(b=>b.marker.remove());S.beacons=[];resetSim(true);log('Beacons cleared.');};
+$('startBtn').onclick=startSim;
+$('abBtn').onclick=compareAB;
+$('fcont').onclick=()=>{$('found').style.display='none';if(S.d.mode!=='LANDED'){S.sim.running=true;S.sim.last=performance.now();requestAnimationFrame(frame);}};
+const PROFILES={c3:{batt:55,speed:12,climb:5,heated:true},vtol:{batt:120,speed:20,climb:4,heated:true},small:{batt:40,speed:12,climb:4,heated:false}};
+function applyProfile(){const P=PROFILES[$('dprof').value];if(!P)return;['batt','speed','climb'].forEach(k=>$(k).value=P[k]);$('heated').checked=P.heated;syncLabels();}
+$('dprof').addEventListener('change',()=>{applyProfile();if(S.segs.length&&!S.sim.running)planRoute();});
+['batt','speed','climb'].forEach(id=>$(id).addEventListener('input',()=>$('dprof').value='custom'));
+$('pauseBtn').onclick=()=>{S.sim.running=false;$('missionState').textContent='PAUSED';log('Paused by operator.');};
+$('resetBtn').onclick=()=>resetSim();
+function setPlacing(v){S.placing=v;$('placeBtn').classList.toggle('on',v);$('placeBtn').textContent=v?'Click map…':'Place on map';map.getCanvas().style.cursor=v?'crosshair':'';}
+
+// ===================== 1. load area =====================
+async function fetchOSM(b){
+ const bb=`${b[1]},${b[0]},${b[3]},${b[2]}`;
+ const q=`[out:json][timeout:60];(way["highway"~"^(path|footway|track|bridleway|steps)$"](${bb});node["highway"="trailhead"](${bb});node["amenity"="parking"](${bb});way["amenity"="parking"](${bb});node["tourism"~"^(viewpoint|camp_site|picnic_site|alpine_hut|wilderness_hut)$"](${bb});node["natural"~"^(peak|waterfall|spring|saddle)$"](${bb});node["waterway"="waterfall"](${bb}););out geom;`;
+ const urls=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+ const ck='trailsar-osm-'+b.map(v=>v.toFixed(4)).join(',');
+ try{const c=localStorage.getItem(ck);if(c){log('Trail data loaded from browser cache.');return JSON.parse(c);}}catch(e){}
+ // bundled data (python fetch_area_data.py) — lets the demo run even when Overpass is down
+ try{const r=await fetch('data/osm-'+b.map(v=>v.toFixed(4)).join(',')+'.json');if(r.ok){const j=await r.json();log('Trail data loaded from bundled data/ folder.');return j;}}catch(e){}
+ for(const u of urls){const host=new URL(u).host;$('areaMsg').textContent='Querying OpenStreetMap via '+host+' (public server, can take up to a minute)…';
+  try{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),70000);const r=await fetch(u,{signal:ac.signal,method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});clearTimeout(to);
+   if(r.ok){const txt=await r.text();try{localStorage.setItem(ck,txt);}catch(e){}return JSON.parse(txt);}log('Overpass '+host+' returned '+r.status);}catch(e){log('Overpass '+host+' unreachable / timed out');}}
+ throw new Error('All Overpass servers failed — try again in a minute.');
+}
+async function loadArea(skipScenario){
+ S.sim.running=false;S.beacons.forEach(b=>b.marker.remove());S.beacons=[];S.route=null;S.story=null;S.ab=null;
+ const p=PRESETS[+$('preset').value];S.preset=p;const c=p.c||[map.getCenter().lng,map.getCenter().lat];const r=+$('radius').value*1000;
+ S.center=c;const sw=offset(c,-r,-r),ne=offset(c,r,r);S.bbox=[sw[0],sw[1],ne[0],ne[1]];
+ $('areaTitle').textContent='MISSION MAP · '+(p.c?p.name.replace(/^CASE · /,'').split(/—|,/)[0].trim().toUpperCase():'CUSTOM AREA');
+ $('loadBtn').disabled=true;$('storyBtn').disabled=true;$('areaMsg').textContent='Fetching trails from OpenStreetMap and terrain tiles…';
+ map.getSource('area').setData(fc([{type:'Feature',geometry:{type:'LineString',coordinates:[sw,[ne[0],sw[1]],ne,[sw[0],ne[1]],sw]}}]));
+ map.flyTo({center:c,zoom:r>3000?12.2:12.8,pitch:60});
+ let ok=false;
+ try{
+  const [osm]=await Promise.all([fetchOSM(S.bbox),DEM.load(S.bbox)]);
+  parseOSM(osm);buildGraph();
+  if(!S.segs.length)throw new Error('No mapped trails in this area.');
+  const tot=S.segs.reduce((a,s)=>a+s.len,0);
+  $('areaMsg').textContent=`${S.segs.length} trail segments · ${km(tot)} of trail · ${S.pois.length} POIs · DEM ${DEM.tiles.size} tiles. Click a trail for its score.`;
+  log(`Loaded ${km(tot)} of trail, ${S.pois.filter(p=>p.kind==='trailhead'||p.kind==='parking').length} trailheads/parking.`);
+  ['planBtn','placeBtn','scenBtn','clearBtn'].forEach(id=>$(id).disabled=false);
+  $('missionState').textContent='AREA LOADED';
+  if(p.settings&&!skipScenario){for(const [k,v] of Object.entries(p.settings))$(k).value=v;syncLabels();}
+  planRoute();if(!skipScenario)(p.phones?presetPhones(p):autoScenario());ok=true;
+ }catch(e){$('areaMsg').textContent='⚠ '+e.message;log(e.message,'#ff7777');}
+ $('loadBtn').disabled=false;$('storyBtn').disabled=false;return ok;
+}
+function inBox(p){const b=S.bbox;return p[0]>=b[0]&&p[0]<=b[2]&&p[1]>=b[1]&&p[1]<=b[3];}
+function parseOSM(osm){
+ S.pois=[];const ways=[];
+ for(const el of osm.elements){const t=el.tags||{};
+  if(el.type==='node'){const kind=t.highway==='trailhead'?'trailhead':t.amenity==='parking'?'parking':t.tourism||t.natural||(t.waterway==='waterfall'?'waterfall':null);if(kind)S.pois.push({kind,p:[el.lon,el.lat],name:t.name||''});}
+  else if(el.type==='way'&&el.geometry){
+   if(t.amenity==='parking'){const g=el.geometry;const m=g.reduce((a,q)=>[a[0]+q.lon/g.length,a[1]+q.lat/g.length],[0,0]);S.pois.push({kind:'parking',p:m,name:t.name||''});continue;}
+   let run=[];const flush=()=>{if(run.length>1)ways.push({pts:run,tags:t});run=[];};
+   for(const g of el.geometry){const q=[g.lon,g.lat];if(inBox(q))run.push(q);else flush();}flush();}
+ }
+ S.ways=ways;
+ map.getSource('pois').setData(fc(S.pois.map(p=>({type:'Feature',properties:{kind:p.kind,name:p.name},geometry:{type:'Point',coordinates:p.p}}))));
+}
+// ===================== trail graph =====================
+function buildGraph(){
+ const K=p=>p[0].toFixed(7)+','+p[1].toFixed(7);const cnt=new Map();
+ S.ways.forEach(w=>w.pts.forEach((p,i)=>{const k=K(p);cnt.set(k,(cnt.get(k)||0)+(i===0||i===w.pts.length-1?2:1));}));
+ const nodes=new Map();S.nodes=[];S.segs=[];
+ const node=p=>{const k=K(p);let n=nodes.get(k);if(!n){n={id:S.nodes.length,p,adj:[]};nodes.set(k,n);S.nodes.push(n);}return n;};
+ for(const w of S.ways){let start=0;
+  for(let i=1;i<w.pts.length;i++){if(i===w.pts.length-1||cnt.get(K(w.pts[i]))>1){
+   const pts=w.pts.slice(start,i+1);let len=0;for(let j=1;j<pts.length;j++)len+=hav(pts[j-1],pts[j]);
+   if(len>0.5){const a=node(pts[0]),b=node(pts[pts.length-1]);
+    const s={id:S.segs.length,a,b,pts,len,name:w.tags.name||'',hw:w.tags.highway,sac:w.tags.sac_scale||'',tags:w.tags};
+    S.segs.push(s);a.adj.push({seg:s,to:b});if(b!==a)b.adj.push({seg:s,to:a});}
+   start=i;}}}
+ const comp=new Int32Array(S.nodes.length).fill(-1);S.compLen=[];
+ for(const n of S.nodes){if(comp[n.id]>=0)continue;const c=S.compLen.length;S.compLen.push(0);const st=[n];comp[n.id]=c;
+  while(st.length){const u=st.pop();for(const e of u.adj){if(comp[e.to.id]<0){comp[e.to.id]=c;st.push(e.to);}}}}
+ S.segs.forEach(s=>S.compLen[comp[s.a.id]]+=s.len);S.comp=comp;
+ addAirLinks();
+}
+// Map trail data is full of gaps (a trail stops at a road, a bridge isn't mapped), which splits it into separate
+// networks. A drone doesn't need a connected trail: give the planner straight "air links" between networks. Every
+// network is joined to the rest by the shortest links (a minimum spanning tree), plus any shortcut under 250 m.
+// Air links are transit only: never counted as trail swept, never drawn as trails.
+function addAirLinks(){
+ const by=new Map();
+ S.nodes.forEach(n=>{const c=S.comp[n.id];if(S.compLen[c]<150)return;(by.get(c)||by.set(c,[]).get(c)).push(n);});
+ const comps=[...by.keys()],pairs=[];
+ for(let i=0;i<comps.length;i++)for(let j=i+1;j<comps.length;j++){
+  let best=Infinity,na=null,nb=null;
+  for(const a of by.get(comps[i]))for(const b of by.get(comps[j])){const d=hav(a.p,b.p);if(d<best){best=d;na=a;nb=b;}}
+  pairs.push({d:best,na,nb,i:comps[i],j:comps[j]});}
+ pairs.sort((x,y)=>x.d-y.d);
+ const parent=new Map(comps.map(c=>[c,c])),find=c=>parent.get(c)===c?c:(parent.set(c,find(parent.get(c))),parent.get(c));
+ S.air=[];
+ for(const p of pairs){
+  const ri=find(p.i),rj=find(p.j),tree=ri!==rj;
+  if(!tree&&p.d>=250)continue;
+  if(tree)parent.set(ri,rj);
+  const s={id:-1-S.air.length,a:p.na,b:p.nb,pts:[p.na.p,p.nb.p],len:p.d*1.1,air:true,planned:true,prio:0,pop:0,name:'(air link)'};
+  S.air.push(s);p.na.adj.push({seg:s,to:p.nb});p.nb.adj.push({seg:s,to:p.na});}
+}
+// ===================== traffic / risk scoring =====================
+function scoreSegments(){
+ const heads=S.pois.filter(p=>p.kind==='trailhead'||p.kind==='parking');
+ const attr=S.pois.filter(p=>p.kind!=='trailhead'&&p.kind!=='parking');
+ const AW={peak:1,viewpoint:1,waterfall:1.1,saddle:.6,camp_site:.8,picnic_site:.7,alpine_hut:.8,wilderness_hut:.7,spring:.4};
+ const TF={path:1,footway:.9,steps:.85,bridleway:.65,track:.4};
+ const SAC={hiking:0,mountain_hiking:.35,demanding_mountain_hiking:.65,alpine_hiking:.85,demanding_alpine_hiking:1,difficult_alpine_hiking:1};
+ let maxPop=0;
+ for(const s of S.segs){
+  const mid=s.pts[Math.floor(s.pts.length/2)];
+  let dHead=Infinity;heads.forEach(h=>dHead=Math.min(dHead,hav(mid,h.p)));
+  let a=0;attr.forEach(q=>a+=(AW[q.kind]||.5)*Math.exp(-hav(mid,q.p)/400));
+  let f=(TF[s.hw]||.5)*(s.name?1:.5);
+  if(s.tags.informal==='yes')f*=.5;if(s.tags.access==='no'||s.tags.access==='private')f*=.3;
+  s.pop=f*(0.3+0.7*(heads.length?Math.exp(-dHead/2500):.5))+0.35*Math.min(a,2);
+  maxPop=Math.max(maxPop,s.pop);
+  const sl=DEM.slopeDeg(mid);s.slope=isFinite(sl)?sl:0;
+  s.risk=Math.min(1,0.55*Math.min(1,s.slope/35)+0.45*(SAC[s.sac]??0.15)+(s.tags.trail_visibility&&/bad|horrible|no/.test(s.tags.trail_visibility)?.3:0));
+ }
+ S.segs.forEach(s=>{s.pop/=maxPop||1;s.boosted=!!(S.preset&&S.preset.boost&&S.preset.boost.test(s.name));if(s.boosted)s.pop=1;});
+ const wp=+$('wpop').value/100,wr=+$('wrisk').value/100;
+ S.segs.forEach(s=>{s.prio=(wp*s.pop+wr*s.risk)/((wp+wr)||1);});
+}
+function renderTrails(){
+ map.getSource('trails').setData(fc(S.segs.map(s=>({type:'Feature',properties:{prio:s.prio,pop:s.pop,risk:s.risk,name:s.name+(s.boosted?' (known high-use route)':''),hw:s.hw,len:s.len,sac:s.sac},geometry:{type:'LineString',coordinates:s.pts}}))));
+}
+// ===================== battery model =====================
+function endurance(){
+ const h=S.launch?DEM.safe(S.launch):0,T=+$('temp').value;
+ const fa=Math.sqrt(Math.exp(-h/8500));          // hover power ∝ 1/sqrt(air density)
+ const ft=$('heated').checked?Math.max(.9,1-0.003*Math.max(0,15-T)):Math.max(.6,1-0.008*Math.max(0,15-T)); // Li-ion capacity loss in cold
+ return {sec:+$('batt').value*60*fa*ft,fa,ft,h};
+}
+// ===================== 2. route planner =====================
+function heapPush(h,x){h.push(x);let i=h.length-1;while(i>0){const p=(i-1)>>1;if(h[p][0]<=h[i][0])break;[h[p],h[i]]=[h[i],h[p]];i=p;}}
+function heapPop(h){const top=h[0],last=h.pop();if(h.length){h[0]=last;let i=0;for(;;){let l=2*i+1,r=l+1,m=i;if(l<h.length&&h[l][0]<h[m][0])m=l;if(r<h.length&&h[r][0]<h[m][0])m=r;if(m===i)break;[h[m],h[i]]=[h[i],h[m]];i=m;}}return top;}
+function dijkstra(src){const n=S.nodes.length,dist=new Float64Array(n).fill(Infinity),prev=new Array(n).fill(null);dist[src.id]=0;const h=[[0,src.id]];
+ while(h.length){const [d,u]=heapPop(h);if(d>dist[u])continue;for(const e of S.nodes[u].adj){const nd=d+e.seg.len;if(nd<dist[e.to.id]){dist[e.to.id]=nd;prev[e.to.id]={seg:e.seg,from:u};heapPush(h,[nd,e.to.id]);}}}
+ return {dist,prev};}
+function pathTo(prev,srcId,dstId){const out=[];let v=dstId;while(v!==srcId){const p=prev[v];if(!p)return null;out.push({seg:p.seg,from:p.from});v=p.from;}return out.reverse();}
+function segGeom(seg,fromId){return seg.a.id===fromId?seg.pts:[...seg.pts].reverse();}
+function chooseLaunch(){
+ const heads=S.pois.filter(p=>p.kind==='trailhead').concat(S.pois.filter(p=>p.kind==='parking'));
+ // case presets: launch from the trailhead of the known high-use route
+ const bz=S.preset&&S.preset.boost?S.segs.filter(s=>S.preset.boost.test(s.name)):[];
+ let anchor=S.center,comp=-1;
+ if(bz.length){const cl={};bz.forEach(s=>cl[S.comp[s.a.id]]=(cl[S.comp[s.a.id]]||0)+s.len);comp=+Object.entries(cl).sort((a,b)=>b[1]-a[1])[0][0];
+  let lo=Infinity;bz.filter(s=>S.comp[s.a.id]===comp).forEach(s=>s.pts.forEach(p=>{const e=DEM.safe(p);if(e<lo){lo=e;anchor=p;}}));}
+ let best=null,bd=Infinity;for(const h of heads){const d=hav(h.p,anchor)*(h.kind==='trailhead'?.7:1);if(d<bd){bd=d;best=h;}}
+ S.launch=best&&(!bz.length||bd<1500)?best.p:anchor;
+ const big=Math.max(...S.compLen);let hn=null,hd=Infinity;
+ for(const n of S.nodes){if(comp>=0?S.comp[n.id]!==comp:S.compLen[S.comp[n.id]]<big*0.25)continue;const d=hav(n.p,S.launch);if(d<hd){hd=d;hn=n;}}
+ S.home=hn;
+}
+function planRoute(){
+ chooseLaunch();scoreSegments();renderTrails();
+ const speed=+$('speed').value,E=endurance();
+ const sweepFrac=Math.max(.1,1-.2-(+$('resv').value)/100);
+ const corridor=$('pattern').value==='corridor';
+ // Cost model: corridor-worthy trail (priority ≥ 0.45) searched for the first time is flown as L parallel lanes
+ // (cost ≈ L per metre of trail); everything else costs 1 per metre; the flight home is a straight line.
+ const LN=laneSpec(),Z=s=>corridor&&s.prio>=0.45?LN.n+0.1:1,budget=E.sec*sweepFrac*speed*(+$('sorties').value),homeCost=p=>hav(p,S.launch)*1.15;
+ $('endur').innerHTML=`Effective endurance <b>${(E.sec/60).toFixed(1)} min</b> (launch ${Math.round(E.h)} m: thin air −${Math.round((1-E.fa)*100)}%, cold −${Math.round((1-E.ft)*100)}%). Trail sweep gets ${Math.round(sweepFrac*100)}%, 20% is landing reserve${+$('sorties').value>1?`; ${$('sorties').value} sorties = ${(E.sec*$('sorties').value/60).toFixed(0)} min total`:''}.`;
+ S.segs.forEach(s=>{s.planned=false;s.partial=0;});
+ let cur=S.home,used=hav(S.launch,S.home.p);const PC=[{pts:[S.launch,S.home.p],lanes:false}];
+ const walk=steps=>{let c=0;for(const st of steps||[]){const fresh=!st.seg.planned;PC.push({pts:segGeom(st.seg,st.from),lanes:fresh&&Z(st.seg)>1});c+=st.seg.len*(fresh?Z(st.seg):1);st.seg.planned=true;}return c;};
+ for(let iter=0;iter<400;iter++){
+  const {dist,prev}=dijkstra(cur);let best=null,bv=0;
+  for(const s of S.segs){if(s.planned)continue;
+   for(const [st,en] of [[s.a,s.b],[s.b,s.a]]){const dS=dist[st.id];if(!isFinite(dS))continue;const cost=dS+Z(s)*s.len;
+    if(used+cost+homeCost(en.p)>budget)continue;const v=s.prio*s.len*Math.sqrt(Z(s))/(cost+150);if(v>bv){bv=v;best={s,st,en};}}}
+  if(!best)break;
+  used+=walk(pathTo(prev,cur.id,best.st.id));PC.push({pts:segGeom(best.s,best.st.id),lanes:Z(best.s)>1});used+=Z(best.s)*best.s.len;best.s.planned=true;cur=best.en;
+ }
+ // spend what's left on part of the most valuable segment that didn't fit whole, then fly straight home from there
+ {const {dist,prev}=dijkstra(cur);let best=null,bv=0;
+  for(const s of S.segs){if(s.planned)continue;for(const st of [s.a,s.b]){const dS=dist[st.id];if(!isFinite(dS))continue;
+   const g=segGeom(s,st.id),rem=budget-used-dS;let acc=0,k=0;
+   for(;k<g.length-1;k++){const L=hav(g[k],g[k+1]);if(Z(s)*(acc+L)+homeCost(g[k+1])>rem)break;acc+=L;}
+   if(acc<200)continue;const v=s.prio*acc*Math.sqrt(Z(s))/(dS+Z(s)*acc+150);if(v>bv){bv=v;best={s,st,part:g.slice(0,k+1),acc};}}}
+  if(best){used+=walk(pathTo(prev,cur.id,best.st.id));PC.push({pts:best.part,lanes:Z(best.s)>1});used+=Z(best.s)*best.acc;best.s.partial=best.acc;}}
+ PC.push({pts:[S.launch],lanes:false});
+ const geom=[];for(const pc of PC)for(const p of (pc.lanes?lanePts(pc.pts,LN):pc.pts)){const l=geom[geom.length-1];if(!l||l[0]!==p[0]||l[1]!==p[1])geom.push(p);}
+ buildFlightProfile(geom);
+ const cl=s=>s.planned?s.len:(s.partial||0);
+ const tot=S.segs.reduce((a,s)=>a+s.len,0),cov=S.segs.reduce((a,s)=>a+cl(s),0);
+ const hi=S.segs.filter(s=>s.pop>=0.5),hiT=hi.reduce((a,s)=>a+s.len,0),hiC=hi.reduce((a,s)=>a+cl(s),0);
+ $('s_cov').textContent=Math.round(100*cov/tot)+'%';$('s_hi').textContent=hiT?Math.round(100*hiC/hiT)+'%':'—';
+ const sw=Math.round(LN.s);
+ $('planMsg').textContent=`Sweeps ${km(cov)} of ${km(tot)} trail; ${hiT?Math.round(100*hiC/hiT):0}% of high-traffic trail. `+(corridor?
+  `Corridor: on high-priority trails the drone flies ${LN.n} parallel lanes ${Math.round(LN.sp)} m apart (a pocketed phone is heard ±${sw} m from each lane), covering ~±${Math.round(LN.half)} m around the trail.`:
+  `Centerline: hears a pocketed phone only within ~±${sw} m of the trail.`);
+ renderHome();buildPOA();
+ ['startBtn','resetBtn','abBtn'].forEach(id=>$(id).disabled=false);
+ resetSim(true);$('missionState').textContent='ROUTE PLANNED';
+ log(`Route planned: ${km(S.route.len)}, ${fmtTime(S.route.len/speed)} sweep; ${(E.sec/60).toFixed(1)} min effective battery.`);
+}
+// Corridor search = parallel-track search (standard SAR pattern): lanes run alongside the trail, spaced so each
+// lane's hearing range overlaps the next. Lane count comes from how far a pocketed phone can actually be heard.
+function swathEff(agl){const dmax=10**((-59-(+$('canopy').value)-BODY_LOSS-(+$('sens').value))/20);return dmax>agl?Math.sqrt(dmax*dmax-agl*agl):0;}
+function laneSpec(){
+ const s=Math.max(30,swathEff(+$('agl').value)),cw=+$('cw').value;
+ const k=Math.max(0,Math.ceil((cw-.8*s)/(1.8*s))),n=1+2*k,sp=k?Math.min(1.8*s,(cw-.8*s)/k):0;
+ return {n,sp,s,half:k*sp+s};}
+function lanePts(pts,LN){
+ const r=[];let d=0;
+ for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],L=hav(a,b);for(let t=(r.length?(20-(d%20))%20:0);t<L;t+=20)r.push(lerp(a,b,L?t/L:0));d+=L;}
+ r.push(pts[pts.length-1]);
+ if(LN.n<=1||d<150)return pts;
+ const m=r.length,W=6,kx=R*D2R*Math.cos(S.center[1]*D2R),ky=R*D2R;
+ const sm=r.map((_,i)=>{let x=0,y=0,c=0;for(let j=Math.max(0,i-W);j<=Math.min(m-1,i+W);j++){x+=r[j][0];y+=r[j][1];c++;}return [x/c,y/c];});
+ const nrm=sm.map((q,i)=>{const a=sm[Math.max(0,i-3)],b=sm[Math.min(m-1,i+3)],tx=(b[0]-a[0])*kx,ty=(b[1]-a[1])*ky,l=Math.hypot(tx,ty)||1;return [ty/l,-tx/l];});
+ // shift the lane pattern toward the side where the ground falls away (lost hikers drift downhill); centred on ridges
+ let dR=0,dL=0,c=0;for(let i=0;i<m;i+=5){const e=DEM.safe(sm[i]);dR+=e-DEM.safe(offset(sm[i],nrm[i][0]*150,nrm[i][1]*150));dL+=e-DEM.safe(offset(sm[i],-nrm[i][0]*150,-nrm[i][1]*150));c++;}
+ const w=x=>Math.max(.5,Math.min(1,.5+x/c/40)),bias=.5*LN.sp*(w(dR)-w(dL))/.5;
+ const out=[r[0]];
+ for(let j=0;j<LN.n;j++){const o=bias+(j-(LN.n-1)/2)*LN.sp;
+  for(let ii=0;ii<m;ii++){const i=j%2?m-1-ii:ii;const p=offset(sm[i],nrm[i][0]*o,nrm[i][1]*o);out.push(inBox(p)?p:sm[i]);}}
+ out.push(r[m-1]);return out;
+}
+function buildFlightProfile(geom){
+ const STEP=10,agl=+$('agl').value,speed=+$('speed').value,g=(+$('climb').value)/speed;
+ const smp=[];let d=0;
+ for(let i=1;i<geom.length;i++){const a=geom[i-1],b=geom[i],L=hav(a,b);
+  for(let t=(smp.length?(STEP-(d%STEP))%STEP:0);t<L;t+=STEP)smp.push({p:lerp(a,b,L?t/L:0),d:d+t});d+=L;}
+ smp.push({p:geom[geom.length-1],d});
+ for(const s of smp){s.ground=DEM.safe(s.p);s.buf=DEM.buf(s.p);s.alt=s.buf+agl;}
+ for(let i=1;i<smp.length;i++)smp[i].alt=Math.max(smp[i].alt,smp[i-1].alt-g*(smp[i].d-smp[i-1].d));
+ for(let i=smp.length-2;i>=0;i--)smp[i].alt=Math.max(smp[i].alt,smp[i+1].alt-g*(smp[i+1].d-smp[i].d));
+ let maxAgl=0;smp.forEach(s=>{s.agl=s.alt-s.ground;s.st=s.agl>121.9?'high':'ok';maxAgl=Math.max(maxAgl,s.agl);});
+ S.route={smp,len:d,maxAgl};
+ const feats=[];let cur=null;
+ smp.forEach(s=>{if(!cur||cur.properties.st!==s.st){if(cur)cur.geometry.coordinates.push(s.p);cur={type:'Feature',properties:{st:s.st},geometry:{type:'LineString',coordinates:[]}};feats.push(cur);}cur.geometry.coordinates.push(s.p);});
+ map.getSource('route').setData(fc(feats));
+ $('s_len').textContent=km(d);$('s_time').textContent=fmtTime(d/speed);
+ $('s_maxagl').textContent=Math.round(maxAgl)+' m';$('s_maxagl').style.color=maxAgl>121.9?'#ff4dd2':'';
+ const hiM=smp.filter(s=>s.st==='high').length*STEP;
+ if(hiM)log(`⚠ ${km(hiM)} of route exceeds 120 m (400 ft) AGL — terrain falls away faster than the ${$('climb').value} m/s descent limit.`,'#ff4dd2');
+ updateSwathChip();
+}
+function sampleAt(d){const sm=S.route.smp;let lo=0,hi=sm.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(sm[m].d<=d)lo=m;else hi=m;}
+ const a=sm[lo],b=sm[hi],t=b.d>a.d?Math.min(1,Math.max(0,(d-a.d)/(b.d-a.d))):0;
+ return {p:lerp(a.p,b.p,t),alt:a.alt+(b.alt-a.alt)*t,ground:a.ground+(b.ground-a.ground)*t};}
+function renderHome(){S.markers.forEach(m=>m.remove());const el=document.createElement('div');el.className='home';el.textContent='H';el.title='Launch / home';
+ S.markers=[new maplibregl.Marker({element:el}).setLngLat(S.launch).addTo(map)];}
+
+// ===================== probability-of-area (POA) grid =====================
+// Prior: where a beacon-carrying person is likely to be. Mass concentrates near busy trails,
+// with extra weight in valleys/drainages (lost hikers tend to travel downhill).
+function buildPOA(){
+ const b=S.bbox,cs=40,wM=hav([b[0],S.center[1]],[b[2],S.center[1]]),hM=hav([S.center[0],b[1]],[S.center[0],b[3]]);
+ const cols=Math.round(wM/cs),rows=Math.round(hM/cs),n=cols*rows;
+ const lon=new Float64Array(n),lat=new Float64Array(n),gnd=new Float32Array(n),dist=new Float32Array(n).fill(1e9),pop=new Float32Array(n);
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const k=r*cols+c;lon[k]=b[0]+(c+.5)*(b[2]-b[0])/cols;lat[k]=b[3]-(r+.5)*(b[3]-b[1])/rows;gnd[k]=DEM.safe([lon[k],lat[k]]);}
+ const idx=p=>{const c=Math.floor((p[0]-b[0])/(b[2]-b[0])*cols),r=Math.floor((b[3]-p[1])/(b[3]-b[1])*rows);return c>=0&&c<cols&&r>=0&&r<rows?r*cols+c:-1;};
+ for(const s of S.segs)for(let i=1;i<s.pts.length;i++){const L=hav(s.pts[i-1],s.pts[i]);for(let t=0;t<=L;t+=15){const k=idx(lerp(s.pts[i-1],s.pts[i],L?t/L:0));if(k>=0){dist[k]=0;pop[k]=Math.max(pop[k],s.pop);}}}
+ const relax=(k,nk,w)=>{if(dist[nk]+w<dist[k]){dist[k]=dist[nk]+w;pop[k]=pop[nk];}};const dg=cs*Math.SQRT2;
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const k=r*cols+c;if(c>0)relax(k,k-1,cs);if(r>0){relax(k,k-cols,cs);if(c>0)relax(k,k-cols-1,dg);if(c<cols-1)relax(k,k-cols+1,dg);}}
+ for(let r=rows-1;r>=0;r--)for(let c=cols-1;c>=0;c--){const k=r*cols+c;if(c<cols-1)relax(k,k+1,cs);if(r<rows-1){relax(k,k+cols,cs);if(c<cols-1)relax(k,k+cols+1,dg);if(c>0)relax(k,k+cols-1,dg);}}
+ const prior=new Float64Array(n);let sum=0;const K=5;
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const k=r*cols+c;let m=0,cnt=0;
+  for(const [dr,dc] of [[-K,0],[K,0],[0,-K],[0,K],[-K,-K],[-K,K],[K,-K],[K,K]]){const rr=r+dr,cc=c+dc;if(rr>=0&&rr<rows&&cc>=0&&cc<cols){m+=gnd[rr*cols+cc];cnt++;}}
+  const valley=Math.min(1,Math.max(0,(m/cnt-gnd[k])/25));
+  prior[k]=(0.06+Math.exp(-dist[k]/150)*(0.25+0.75*pop[k]))*(1+1.5*valley);sum+=prior[k];}
+ for(let k=0;k<n;k++)prior[k]/=sum;
+ // Agent-based lost-hiker model: 3,000 simulated hikers leave a trail (weighted by traffic), drift mostly downhill
+ // and away from the trail with randomness, and stop 80–780 m out. Where they end up is the off-trail probability.
+ const dens=new Float64Array(n),tc=[];for(let k=0;k<n;k++)if(dist[k]===0)tc.push(k);
+ if(tc.length){const cum=[];let acc=0;for(const k of tc){acc+=0.05+pop[k];cum.push(acc);}
+  const pick=()=>{const r=Math.random()*acc;let lo=0,hi=cum.length-1;while(lo<hi){const m=(lo+hi)>>1;if(cum[m]<r)lo=m+1;else hi=m;}return tc[lo];};
+  const NB=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  for(let w=0;w<3000;w++){let k=pick();const steps=Math.round((80+Math.random()*700)/cs);
+   for(let st=0;st<steps;st++){const r=Math.floor(k/cols),c=k%cols;let bs=-1e9,bk=k;
+    for(const [dr,dc] of NB){const rr=r+dr,cc=c+dc;if(rr<0||rr>=rows||cc<0||cc>=cols)continue;const nk=rr*cols+cc,len=cs*((dr&&dc)?1.414:1);
+     const sc=3*(gnd[k]-gnd[nk])/len+(dist[nk]-dist[k])/len+0.6*gauss();if(sc>bs){bs=sc;bk=nk;}}
+    if(bk===k)break;k=bk;dens[k]+=0.15;}
+   dens[k]+=1;}
+  const bl=new Float64Array(n);let ds=0;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let v=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if(rr>=0&&rr<rows&&cc>=0&&cc<cols)v+=dens[rr*cols+cc];}bl[r*cols+c]=v;ds+=v;}
+  for(let k=0;k<n;k++)prior[k]=0.45*prior[k]+0.55*bl[k]/ds;}
+ let pmax=0;for(let k=0;k<n;k++)pmax=Math.max(pmax,prior[k]);
+ S.poa={cols,rows,cs,lon,lat,gnd,prior,v:prior.slice(),pmax,b};
+ poaCanvas.width=cols;poaCanvas.height=rows;
+ if(map.getLayer('poa'))map.removeLayer('poa');if(map.getSource('poa'))map.removeSource('poa');
+ map.addSource('poa',{type:'canvas',canvas:poaCanvas,animate:true,coordinates:[[b[0],b[3]],[b[2],b[3]],[b[2],b[1]],[b[0],b[1]]]});
+ map.addLayer({id:'poa',type:'raster',source:'poa',layout:{visibility:$('showPoa').checked?'visible':'none'},paint:{'raster-opacity':.75,'raster-fade-duration':0}},'trails-casing');
+ drawPOA();
+}
+function drawPOA(){
+ const P=S.poa;if(!P)return;const g=poaCanvas.getContext('2d'),img=g.createImageData(P.cols,P.rows);
+ let tot=0;
+ for(let k=0;k<P.v.length;k++){tot+=P.v[k];const t=Math.pow(Math.min(1,P.v[k]/P.pmax),.55);
+  let r,gg,bb;if(t<.5){const u=t/.5;r=58+(245-58)*u;gg=29+(139-29)*u;bb=110+(43-110)*u;}else{const u=(t-.5)/.5;r=245+(255-245)*u;gg=139+(224-139)*u;bb=43+(102-43)*u;}
+  img.data[k*4]=r;img.data[k*4+1]=gg;img.data[k*4+2]=bb;img.data[k*4+3]=t<.06?0:Math.round(235*Math.pow(t,1.5));}
+ g.putImageData(img,0,0);
+ $('s_ruled').textContent=Math.round((1-tot)*100)+'%';
+}
+// negative-information update: a miss in a cell makes "a beaconing person is here" less likely
+function poaUpdate(){
+ const P=S.poa,d=S.d;if(!P)return;const b=P.b;
+ const cc=Math.floor((d.p[0]-b[0])/(b[2]-b[0])*P.cols),rc=Math.floor((b[3]-d.p[1])/(b[3]-b[1])*P.rows);
+ const rad=Math.ceil(260/P.cs),kx=R*D2R*Math.cos(d.p[1]*D2R),ky=R*D2R;
+ for(let r=Math.max(0,rc-rad);r<=Math.min(P.rows-1,rc+rad);r++)for(let c=Math.max(0,cc-rad);c<=Math.min(P.cols-1,cc+rad);c++){
+  const k=r*P.cols+c,dx=(P.lon[k]-d.p[0])*kx,dy=(P.lat[k]-d.p[1])*ky,dz=d.alt-P.gnd[k]-1;
+  P.v[k]*=1-pdBLE(Math.sqrt(dx*dx+dy*dy+dz*dz));}
+}
+
+// ===================== beacons =====================
+function showMarker(b){const el=b.marker.getElement();el.style.display=$('truth').checked||b.found?'':'none';el.classList.toggle('person',b.verdict==='PERSON');}
+function addBeacon(type,p,person,note){
+ // a phone in a pocket against the body loses ~5–10 dB; the drone's estimator does not know this (model mismatch)
+ const t=BT[type];const b={id:S.beacons.length+1,type,t,p,person,note,loss:person?BODY_LOSS:0,ground:DEM.safe(p),hits:0,best:-999,found:false,verdict:null,track:null};
+ const el=document.createElement('div');el.className='bmk'+(type==='ref'?'':person?' t-person':' t-device');el.style.background=t.color;if(person)el.textContent='!';el.title=t.label+' — '+note+(person?' (person present)':' (no person)');
+ b.marker=new maplibregl.Marker({element:el}).setLngLat(p).addTo(map);showMarker(b);
+ S.beacons.push(b);renderBeacons();log(`Beacon #${b.id} ${t.label} (${t.sig}) — ${note}.`);return b;}
+function walkDownhill(p,meters){let cur=p;for(let i=0;i<meters/20;i++){let best=null,be=DEM.elev(...cur);
+  for(let k=0;k<16;k++){const a=k*Math.PI/8,q=offset(cur,20*Math.cos(a),20*Math.sin(a)),e=DEM.elev(...q);if(e<be-0.3&&hav(q,p)>hav(cur,p)){be=e;best=q;}}
+  if(!best)break;cur=best;}return cur;}
+const midPt=s=>s.pts[Math.floor(s.pts.length/2)];
+function distToTrail(p){let m=Infinity;for(const s of S.segs)for(const q of s.pts){const d=hav(p,q);if(d<m)m=d;}return m;}
+// lost-person drift: step downhill while getting farther from any trail, until ~target metres off-trail
+function walkOffTrail(p,target,awayFrom){let cur=p,dc=distToTrail(cur);
+ for(let i=0;i<60&&dc<target;i++){let best=null,bs=-Infinity;
+  for(let k=0;k<16;k++){const a=k*Math.PI/8,q=offset(cur,20*Math.cos(a),20*Math.sin(a));if(!inBox(q))continue;if(awayFrom&&hav(q,awayFrom)<hav(cur,awayFrom)-3)continue;const dq=distToTrail(q);if(dq<dc-2)continue;
+   const sc=(DEM.safe(cur)-DEM.safe(q))+0.3*(dq-dc);if(sc>bs){bs=sc;best=[q,dq];}}
+  if(!best)break;cur=best[0];dc=best[1];}
+ return cur;}
+// Fixed beacons from a preset (metres east/north of its origin, geo.py's formula), plus the reference beacon
+function presetPhones(p){
+ S.beacons.forEach(b=>b.marker.remove());S.beacons=[];
+ const [lat0,lon0]=p.origin;
+ for(const ph of p.phones)addBeacon(ph.type,[lon0+ph.x/(111320*Math.cos(lat0*D2R)),lat0+ph.y/111320],ph.person,ph.note);
+ addBeacon('ref',offset(S.launch,8,8),false,'reference / calibration beacon at launch site');
+ resetSim(true);
+}
+function autoScenario(){
+ S.beacons.forEach(b=>b.marker.remove());S.beacons=[];
+ const segs=S.segs.filter(s=>s.len>150);if(!segs.length)return; // air links make every network reachable
+ const byPop=[...segs].sort((a,b)=>b.pop-a.pop);
+ addBeacon('findmy',midPt(byPop[0]),false,'dropped AirTag on busiest trail');
+ // Lost people come from the trails people actually use: both hikers start from busy trails in the sweep plan
+ const busy=byPop.filter(s=>s.planned&&hav(midPt(s),S.launch)>500).slice(0,8);
+ const pool=busy.length?busy:byPop.slice(0,8);
+ const s2=pool[Math.floor(Math.random()*pool.length)];
+ const d2=150+Math.round(Math.random()*100);
+ const hp=walkOffTrail(s2.pts[Math.floor(s2.pts.length*(0.3+0.4*Math.random()))],d2);
+ addBeacon('google',hp,true,`hiker left “${s2.name||'a busy trail'}” and drifted ~${Math.round(distToTrail(hp))} m downhill, off-trail`);
+ // injured hiker at a viewpoint / peak / waterfall within 150 m of a planned trail (else on a busy trail)
+ const nearPlan=(q)=>S.segs.some(s=>s.planned&&s.pts.some(t=>hav(t,q)<150));
+ const att=S.pois.filter(p=>['viewpoint','peak','waterfall','camp_site'].includes(p.kind)&&inBox(p.p)&&hav(p.p,S.launch)>500&&nearPlan(p.p)&&hav(p.p,hp)>300);
+ const tgt=att.length?att[Math.floor(Math.random()*att.length)]:{p:midPt(pool[(pool.indexOf(s2)+1)%pool.length]),kind:'trail',name:''};
+ addBeacon('samsung',offset(tgt.p,25,-15),true,`injured hiker near ${tgt.kind.replace('_',' ')}${tgt.name?' “'+tgt.name+'”':''}`);
+ addBeacon('ref',offset(S.launch,8,8),false,'reference / calibration beacon at launch site');
+ resetSim(true);
+}
+function renderBeacons(){
+ const ppl=S.beacons.filter(b=>b.person);
+ $('s_found').textContent=ppl.length?`${ppl.filter(b=>b.verdict==='PERSON').length} of ${ppl.length}`:'—';
+ $('blist').innerHTML=S.beacons.map(b=>{
+  const v=b.verdict==='PERSON'?'<span class="verdict v-person">LIKELY PERSON · RANGER CONFIRM</span>':b.verdict==='DEVICE'?'<span class="verdict v-device">NO HEAT · LIKELY DEVICE · RANGER REVIEW</span>':b.verdict==='UNRESOLVED'?'<span class="verdict v-unres">UNRESOLVED · GROUND CHECK</span>':b.track&&!b.track.done?'<span class="verdict v-track">TRACKING</span>':'';
+  return `<div class="bcn"><div><span class="dot" style="background:${b.type==='ref'?b.t.color:b.person?'#ff3b6b':'#8a97a8'}"></span><span class="k">#${b.id} ${b.t.sig}</span>${v}<div class="m">${b.t.label} · ${b.note}</div></div>
+  <div style="text-align:right;white-space:nowrap">${b.hits?`<b style="color:${b.best>-95?'#ff7777':'#f5bd62'}">${b.hits} pkts</b><div class="m">best ${b.best.toFixed(0)} dBm</div>`:'<span class="m">not heard</span>'}</div></div>`;}).join('')||'<div class="msg">No beacons. Use Auto scenario or place your own.</div>';}
+function updateSwathChip(){const agl=+$('agl').value;$('chipSwath').textContent='±'+Math.round(swathEff(agl))+' m (pocketed phone) @ '+agl+' m AGL';}
+
+// ===================== beacon localisation (Bayesian grid per heard beacon) =====================
+// The drone never knows where a beacon is. Each heard signature gets a 1.4 × 1.4 km likelihood grid that is
+// updated every second with the RSSI it heard — or the fact it heard nothing.
+function newTrack(c){const N=70,cs=20,n=N*N,lon=new Float64Array(n),lat=new Float64Array(n),gnd=new Float32Array(n);
+ for(let j=0;j<N;j++)for(let i=0;i<N;i++){const k=j*N+i,q=offset(c,(i-N/2+.5)*cs,(N/2-j-.5)*cs);lon[k]=q[0];lat[k]=q[1];gnd[k]=DEM.safe(q);}
+ return {N,cs,lon,lat,gnd,lp:new Float64Array(n),map:c,conc:0,rms:999,done:false,t0:S.sim.t};}
+function trackUpdate(T,r){
+ const d=S.d,thr=+$('sens').value,can=+$('canopy').value,kx=R*D2R*Math.cos(d.p[1]*D2R),ky=R*D2R,n=T.lp.length;let best=-Infinity,bi=0;
+ // the strongest packet bounds the range: allow 12 dB of slack for noise / extra body or terrain loss
+ const rmax=Math.min(600,Math.max(80,10**((-59-can-ASSUMED_LOSS-T.bestR+12)/20))),bx=T.bestP[0]*kx,by=T.bestP[1]*ky;
+ const ok=k=>{const dx=T.lon[k]*kx-bx,dy=T.lat[k]*ky-by;return dx*dx+dy*dy<=rmax*rmax;};
+ for(let k=0;k<n;k++){const dx=(T.lon[k]-d.p[0])*kx,dy=(T.lat[k]-d.p[1])*ky,dz=d.alt-T.gnd[k]-1,dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
+  const m=-59-20*Math.log10(Math.max(1,dist))-can-ASSUMED_LOSS,pd=PDET*Phi((m-thr)/SIG);
+  T.lp[k]+=r===null?Math.log(1-pd+1e-6):(-((r-m)**2)/(2*36)+Math.log(pd+1e-6));
+  if(T.lp[k]>best&&ok(k)){best=T.lp[k];bi=k;}}
+ T.map=[T.lon[bi],T.lat[bi]];const mx=(T.lon[bi]-0)*kx,my=T.lat[bi]*ky;let sum=0,near=0,ss=0;
+ for(let k=0;k<n;k++){if(!ok(k))continue;const w=Math.exp(T.lp[k]-best);if(w<1e-6)continue;const dx=T.lon[k]*kx-mx,dy=T.lat[k]*ky-my,dd=dx*dx+dy*dy;sum+=w;ss+=w*dd;if(dd<1600)near+=w;}
+ T.conc=near/sum;T.rms=Math.sqrt(ss/sum);
+}
+
+// ===================== flight controller =====================
+function setMode(m,msg,cls){S.d.mode=m;$('chipMode').textContent=m;$('missionState').textContent=m;if(msg)log(msg,cls);}
+function moveTo(tgt,sp,aglT){
+ const d=S.d;aglT=aglT??+$('agl').value;const climb=+$('climb').value,L=hav(d.p,tgt);let arrived=false;
+ if(L<=sp){d.p=tgt.slice();arrived=true;}else d.p=lerp(d.p,tgt,sp/L);
+ const Lr=hav(d.p,tgt);let want=-Infinity;
+ for(let k=0;k<=6;k++){const q=Lr>1?lerp(d.p,tgt,Math.min(1,sp*k/Lr)):d.p;want=Math.max(want,DEM.buf(q)+aglT-climb*k);}
+ d.alt+=Math.max(-climb,Math.min(climb,want-d.alt));d.alt=Math.max(d.alt,DEM.buf(d.p)+8);
+ return arrived;}
+function addEvent(text,hot){S.events.push({clock:$('clock').textContent,t:S.sim.t,text,hot});renderTimeline();}
+function tick(){
+ const sp=+$('speed').value,d=S.d;S.sim.t+=1;S.bat-=1;updateClock();
+ if(!['RTH','LANDED'].includes(d.mode)&&S.bat-S.reserve<hav(d.p,S.launch)/sp+45){setMode('RTH','🔋 Battery reserve reached — returning to launch.','#f5bd62');addEvent('Battery reserve reached → return to launch');}
+ // Demo only: end once every hidden person is found. A real drone can't know how many are out there and would
+ // finish its sweep; the simulation knows, so it stops instead of flying on for another hour.
+ const ppl=S.beacons.filter(b=>b.person);
+ if(!S.allFound&&ppl.length&&ppl.every(b=>b.verdict==='PERSON')&&!['HOMING','CHECK','RTH','LANDED'].includes(d.mode)){
+  S.allFound=true;S.endMission=true;setMode('RTH','Every hidden person proposed to the ranger: returning to launch (a real drone would finish its sweep).','#61d69b');
+  addEvent(`All ${ppl.length} hidden ${ppl.length>1?'people':'person'} proposed to the ranger in ${fmtTime(S.sim.t)} → return to launch`,true);}
+ switch(d.mode){
+  case 'SWEEP':{S.sweepD=Math.min(S.route.len,S.sweepD+sp);const pos=sampleAt(S.sweepD);d.p=pos.p;d.alt=pos.alt;if(S.sweepD>=S.route.len)sweepFinished();break;}
+  case 'REJOIN':if(moveTo(sampleAt(S.sweepD).p,sp))setMode('SWEEP','Rejoined planned trail route.');break;
+  case 'HOMING':homingStep(sp);break;
+  case 'CHECK':confirmStep(sp);break;
+  case 'POA':poaStep(sp);break;
+  case 'RTH':if(moveTo(S.launch,sp))land();break;
+  case 'HOLD':moveTo(S.holdAt,sp,40);break;
+ }
+ if(d.mode!=='LANDED'){S.trail.push(d.p.slice());scan();poaUpdate();}
+}
+function sweepFinished(){
+ S.sweepDone=true;addEvent('Planned trail sweep complete');
+ if($('poaFollow').checked&&S.bat-S.reserve>180){setMode('POA','Trail sweep complete → probability-guided off-trail search.');addEvent('Off-trail search of highest-probability areas begins');}
+ else land();}
+function scan(){
+ const d=S.d;
+ for(const b of S.beacons){
+  const h=hav(d.p,b.p);let heard=false,rssi=null;
+  if(b.t.radio==='LoRa'||h<700){
+   const dist=Math.hypot(h,d.alt-(b.ground+1));let extra=+$('canopy').value+(b.loss||0);if(!lineOfSight(d.p,d.alt,b.p,b.ground+1))extra+=20;
+   rssi=rssiMean(b.t,dist,extra)+gauss()*SIG;
+   if(b.type==='ref'){const ok=rssi>b.t.sensLoRa;$('s_link').textContent=ok?rssi.toFixed(0)+' dBm':'LOST';$('s_link').style.color=ok?'':'#ff7777';continue;}
+   heard=rssi>=sens(b.t)&&Math.random()<PDET;
+  }
+  if(b.type==='ref')continue;
+  if(heard){b.hits++;if(rssi>b.best&&b.track){b.track.bestP=d.p.slice();b.track.bestR=rssi;}b.best=Math.max(b.best,rssi);if(b.track)b.track.lastHeard=S.sim.t;S.dets.push({type:'Feature',properties:{rssi,b:b.id},geometry:{type:'Point',coordinates:d.p.slice()}});
+   if(!b.found){b.found=true;showMarker(b);b.track=newTrack(d.p);b.track.bestP=d.p.slice();b.track.bestR=rssi;b.track.lastHeard=S.sim.t;b.attempts=0;
+    log(`📡 ${b.t.label} ${b.t.sig} heard at ${rssi.toFixed(0)} dBm — starting localisation.`,'#f5bd62');
+    addEvent(`Beacon ${b.t.sig} heard (${rssi.toFixed(0)} dBm)`,true);
+    if(['SWEEP','REJOIN','POA'].includes(d.mode))startHoming(b);else if(!S.queue.includes(b))S.queue.push(b);}
+   // Re-check only UNRESOLVED beacons (the search didn't cover their likely area). A "likely device" stays flagged for
+   // the ranger instead: re-checking it every time the drone passes burns the battery other people need.
+   else if(b.verdict==='UNRESOLVED'&&b.attempts<2&&!S.active&&['SWEEP','REJOIN','POA'].includes(d.mode)){log(`#${b.id} ${b.t.sig} heard again (${b.verdict==='UNRESOLVED'?'unresolved':`${Math.round(hav(d.p,b.track.map))} m from where it was checked`}): second localisation attempt.`,'#f5bd62');b.verdict=null;b.track.done=false;startHoming(b);}}
+  if(b.track&&!b.track.done)trackUpdate(b.track,heard?rssi:null);
+ }
+}
+function lineOfSight(dp,dalt,bp,balt){for(let k=1;k<10;k++){const t=k/10,q=lerp(dp,bp,t),z=dalt+(balt-dalt)*t;if(DEM.elev(...q)>z)return false;}return true;}
+let HOMING_STYLE='probe'; // 'probe': fly to the estimate, probe 70 m legs when unsure; 'circle': circle the strongest signal first
+// probe style: re-aim only when the estimate moves >40 m; at the target, confirm if tight, else probe sideways;
+// if the beacon goes quiet for 90 s, go back to where it was loudest
+function probeStep(T,sp){
+ if(!S.probeTgt&&S.sim.t-T.lastHeard>90&&!S.fellBack){S.fellBack=true;S.probeTgt=T.bestP.slice();S.probe=0;}
+ if(S.sim.t-T.lastHeard<=1)S.fellBack=false;
+ if(!S.homeTgt||hav(T.map,S.homeTgt)>40)S.homeTgt=T.map.slice();
+ const arrived=moveTo(S.probeTgt||S.homeTgt,sp);
+ if(S.probeTgt){if(arrived)S.probeTgt=null;return;}
+ if(arrived){if(T.conc>=0.6)startConfirm();else{S.probeTgt=offset(S.homeTgt,70*Math.cos(S.probe*2.4),70*Math.sin(S.probe*2.4));S.probe++;}}
+}
+// Homing never runs longer than this; then it checks the best estimate with thermal + mmWave. 8 min tested best
+// (Quandary 13/20, Acadia iPhone 12/12, Pixel 7/12) against 5 min (8/20, 11/12, 2/12) and the circle style.
+let HOMING_MAX_S=480;
+function startHoming(b){S.active=b;b.attempts=(b.attempts||0)+1;S.homeStart=S.sim.t;S.homeTgt=null;S.wpH=null;S.spirals=0;S.spiralC=null;S.probe=0;S.probeTgt=null;S.fellBack=false;
+ setMode('HOMING',`Leaving route to localise ${b.t.sig}.`,'#f5bd62');
+ alertMsg(`Beacon ${b.t.sig} (${b.t.label}) heard. Drone left its route and is flying toward the most likely source position, refining the estimate with every packet (and every silence).`,'alert');}
+function homingStep(sp){
+ const T=S.active.track;
+ // Hard time limit wherever the drone is: the estimate can flip between mirror-image spots forever (RSSI only gives
+ // distance), and chasing it burns the battery. After the limit, the confirm rings search around the best estimate.
+ if(S.sim.t-S.homeStart>HOMING_MAX_S){log(`Homing limit (${HOMING_MAX_S/60} min) reached: checking the best estimate now.`,'#f5bd62');startConfirm();return;}
+ // 1) Unless the estimate is already tight, circle the strongest signal heard so far (50 m, then 100 m). Readings from
+ //    every side break the mirror-image ambiguity that a straight line of packets leaves. If the strongest spot moves
+ //    more than 60 m during the circles, circle the new one once more.
+ if(HOMING_STYLE==='probe')return probeStep(T,sp);
+ if(S.wpH===null){
+  if(T.rms<=40&&T.conc>=0.6)S.wpH=[];
+  else{const c=T.bestP.slice();S.spiralC=c;S.spirals++;S.wpH=[c];
+   for(const r of [50,100])for(let k=0;k<8;k++){const a=k*Math.PI/4;S.wpH.push(offset(c,r*Math.cos(a),r*Math.sin(a)));}}}
+ if(S.wpH.length){
+  if(moveTo(S.wpH[0],sp))S.wpH.shift();
+  if(!S.wpH.length&&S.spirals<2&&T.rms>60&&hav(T.bestP,S.spiralC)>60)S.wpH=null; // strongest spot moved: once more
+  return;}
+ // 2) Fly to the best estimate and check it. Only re-aim when the estimate moves more than 40 m, so it doesn't zig-zag.
+ if(!S.homeTgt||hav(T.map,S.homeTgt)>40)S.homeTgt=T.map.slice();
+ if(moveTo(S.homeTgt,sp))startConfirm();
+}
+function startConfirm(){
+ const b=S.active,T=b.track,c=T.map;
+ const r1=Math.max(35,Math.min(90,T.rms)),r2=r1+45;S.wp=[c];
+ for(const r of [r1,r2])for(let k=0;k<8;k++){const a=k*Math.PI/4;S.wp.push(offset(c,r*Math.cos(a),r*Math.sin(a)));}
+ S.wp.push(c);S.conf={t:0,th:0,mm:0,r2};
+ setMode('CHECK',`${b.t.sig} localised to ±${Math.round(Math.max(10,T.rms))} m after ${fmtTime(S.sim.t-S.homeStart)}. Descending to 25 m AGL: thermal + mmWave search out to ${Math.round(r2)} m.`,'#f5bd62');
+ addEvent(`${b.t.sig} localised ±${Math.round(Math.max(10,T.rms))} m → thermal + mmWave check`);
+ alertMsg(`Beacon localised to ±${Math.round(Math.max(10,T.rms))} m. Drone descends to 25 m AGL and orbits: thermal camera + mmWave radar look for a human heat signature and breathing/motion.`,'alert');}
+function confirmStep(sp){
+ const C=S.conf,d=S.d;C.t++;
+ if(S.wp.length&&moveTo(S.wp[0],Math.min(sp,6),25))S.wp.shift();
+ const can=+$('canopy').value,pT=0.35*(1-can/30)*($('snow').checked?.75:1);
+ for(const b of S.beacons){if(!b.person||b.verdict==='PERSON')continue;const h=hav(d.p,b.p);let hit=false;
+  if(h<45&&Math.random()<pT){C.th++;hit=true;}if(h<25&&Math.random()<0.3){C.mm++;hit=true;}
+  if(hit)C.who=b;} // the person whose heat it saw (the drone only knows where: its own position)
+ if((C.th>=2&&(C.mm>=1||C.t>15))||!S.wp.length)finishConfirm();}
+function finishConfirm(){
+ const b=S.active,C=S.conf,T=b.track;T.done=true;
+ const near=C.who,heat=!!near&&(C.th>=1||C.mm>=1);
+ // A heat signature only confirms this beacon if it's where the beacon was estimated to be. Someone found farther
+ // out on the wide ring is a separate find: the beacon itself is judged on its own below.
+ const atBeacon=heat&&hav(near.p,T.map)<=Math.min(100,Math.max(60,1.5*T.rms));
+ if(heat&&!atBeacon){near.verdict='PERSON';near.found=true;near.confirmT=near.confirmT??S.sim.t;showMarker(near);if(near.track)near.track.done=true;
+  const fix=offset(near.p,gauss()*4,gauss()*4);near.fix=fix;poaClear(fix,150);
+  log(`🔥 Likely person ${Math.round(hav(near.p,T.map))} m from ${b.t.sig}'s estimate while checking it: a separate pin, proposed to the ranger to confirm.`,'#ff7777');
+  addEvent(`Likely person while checking ${b.t.sig} (${Math.round(hav(near.p,T.map))} m away) → pin proposed to the ranger`,true);
+  if(S.story&&!S.story.found){S.story.found=S.sim.t;renderTimeline();}
+  if(!S.quiet)showFound(near,fix,C);}
+ const person=atBeacon;
+ if(person){b.verdict='PERSON';near.verdict='PERSON';near.found=true;const fix=offset(near.p,gauss()*4,gauss()*4);
+  b.fix=fix;log(`🔥 LIKELY PERSON near ${b.t.sig}: thermal ${C.th} hits, mmWave ${C.mm} hits. Pin ${fix[1].toFixed(5)}, ${fix[0].toFixed(5)} proposed to the ranger to confirm.`,'#ff7777');
+  addEvent(`LIKELY PERSON (thermal ${C.th}, mmWave ${C.mm}) → pin proposed to the ranger`,true);
+  if($('payload').checked)addEvent('Light / supply drop proposed to the ranger');
+  alertMsg(`Likely person at ${fix[1].toFixed(5)}, ${fix[0].toFixed(5)} (thermal + mmWave). Pin proposed to the ranger, who confirms or clears it${$('payload').checked?'; a light/supply drop is proposed too':''}. Resuming sweep — there may be others.`,'good');
+  near.confirmT=near.confirmT??S.sim.t;
+  poaClear(fix,150); // that person is found: don't spend more battery searching around them
+  if(S.story&&!S.story.found){S.story.found=S.sim.t;renderTimeline();}
+  if(!S.quiet)showFound(near,fix,C);}
+ // "Likely device" only if the thermal search (rings out to r2, camera reach ~45 m) covered the beacon's 95% area (~2x rms)
+ else if(2*b.track.rms<=C.r2+45){b.verdict='DEVICE';log(`No human signature at ${b.t.sig} (location ±${Math.round(b.track.rms)} m, searched to ${Math.round(C.r2)} m) — likely a dropped/lost device. Flagged for ranger review (not dismissed); will check again if heard later.`,'#9aabc2');
+  addEvent(`${b.t.sig}: no heat/motion → likely a lost device, flagged for ranger review`);
+  alertMsg(`No thermal or mmWave return at ${b.t.sig}: likely a lost device. Flagged for ranger review, not dismissed: the drone checks again if it hears it later. Resuming search.`);}
+ else{b.verdict='UNRESOLVED';log(`${b.t.sig}: no heat/motion found, but location only ±${Math.round(b.track.rms)} m — NOT dismissed. Flagged for the ranger; will re-localise if heard again.`,'#ff9a5a');
+  addEvent(`${b.t.sig}: location too uncertain to rule out a person → flagged for ground check, will retry`,true);
+  alertMsg(`${b.t.sig}: no heat signature found, but the location estimate is too loose (±${Math.round(b.track.rms)} m) to rule out a person. Not dismissed: flagged for the ranger, and the drone will try again if it hears the beacon.`,'alert');}
+ showMarker(b);renderBeacons();S.active=null;
+ const next=S.queue.shift(),of=$('onFind').value;
+ if(next&&!next.track.done&&next.verdict!=='PERSON')startHoming(next);
+ else if((person||heat)&&of==='hold'){S.holding=true;S.holdAt=near.fix;setMode('HOLD','Holding overhead as a beacon / LoRa relay for the ground team.');addEvent('Holding overhead to guide ground team');}
+ else if((person||heat)&&of==='rth'){S.endMission=true;setMode('RTH','Likely person proposed to the ranger: returning to launch.');}
+ else if(!S.sweepDone)setMode('REJOIN','Returning to planned trail route.');
+ else setMode('POA','Resuming probability-guided search.');}
+function showFound(near,fix,C){
+ S.sim.running=false;const off=Math.round(distToTrail(near.p));
+ let big='';if(S.story){const [h,m]=$('closing').value.split(':').map(Number),tf=h*3600+m*60+S.sim.t,diff=21*3600-tf;
+  if(diff>0)big=`<div class="fbig">&#8776; <b>${(diff/3600).toFixed(1)} hours earlier</b> than the ~9:00 pm thermal sighting in the real incident, and before anyone called for help.</div>`;}
+ $('fbody').innerHTML=`<b>${near.note.replace(/^WHAT-IF: /,'')}</b><br>&#128205; ${fix[1].toFixed(5)}, ${fix[0].toFixed(5)} &middot; ${off<40?'on the trail':off+' m off-trail'}<br>
+  &#128339; ${$('clock').textContent} &middot; T+${fmtTime(S.sim.t)} after the sweep launched<br>&#128293; thermal ${C.th} hit${C.th===1?'':'s'} &middot; &#128225; mmWave ${C.mm} &middot; beacon ${near.t.sig}<br>
+  &#128205; Pin proposed to the ranger, who confirms or clears it${$('payload').checked?' &middot; light/supply drop proposed':''}${big}`;
+ $('found').style.display='grid';map.easeTo({center:near.p,zoom:15,duration:1200});}
+function poaClear(c,r){
+ const P=S.poa;if(!P)return;
+ for(let k=0;k<P.v.length;k++)if(hav(c,[P.lon[k],P.lat[k]])<r)P.v[k]=0;
+ S.poaTgt=null;}
+function poaStep(sp){
+ const P=S.poa,d=S.d;
+ if(!S.poaTgt||moveTo(S.poaTgt,sp)){
+  let best=-1,bk=-1;const avail=(S.bat-S.reserve-60)*sp;
+  for(let k=0;k<P.v.length;k+=1){const q=[P.lon[k],P.lat[k]],a=hav(d.p,q);if(a<60)continue;if(a+hav(q,S.launch)>avail)continue;const v=P.v[k]/(a+300);if(v>best){best=v;bk=k;}}
+  if(bk<0){setMode('RTH','Off-trail search budget used — returning to launch.');return;}
+  S.poaTgt=[P.lon[bk],P.lat[bk]];}
+}
+function land(){
+ const more=S.sortie<+$('sorties').value&&!S.endMission&&(!S.sweepDone||$('poaFollow').checked||S.holding);
+ if(more){S.sortie++;S.sim.t+=180;S.bat=S.batMax;S.d.alt=DEM.buf(S.d.p)+(+$('agl').value);updateClock();
+  addEvent(`Landed, hot-swapped battery (3 min), sortie ${S.sortie} of ${$('sorties').value}`);
+  setMode(S.holding?'HOLD':!S.sweepDone?'REJOIN':'POA',`Battery swapped: sortie ${S.sortie} launching.`);return;}
+ drawPOA();S.d.mode='LANDED';S.sim.running=false;$('chipMode').textContent='LANDED';$('missionState').textContent='MISSION COMPLETE';
+ const bl=S.beacons.filter(b=>b.type!=='ref'),heard=bl.filter(b=>b.found).length,pers=bl.filter(b=>b.verdict==='PERSON').length,truth=bl.filter(b=>b.person).length;
+ addEvent(`Landed. ${heard}/${bl.length} beacons heard, ${pers}/${truth} people proposed as likely, ${$('s_ruled').textContent} of probability ruled out`);
+ log(`Mission complete in ${fmtTime(S.sim.t)}: ${heard}/${bl.length} beacons heard, ${pers}/${truth} people proposed as likely.`);
+ alertMsg(`Mission complete: ${heard}/${bl.length} beacons heard · ${pers}/${truth} people proposed as likely ·${$('s_ruled').textContent} of search probability ruled out · ${Math.round(100*Math.max(0,S.bat)/S.batMax)}% battery left.`,pers===truth?'good':'');
+ drawPOA();}
+
+// ===================== simulation loop =====================
+function startSim(){if(!S.route)return;if(S.d.mode==='LANDED')resetSim(true);
+ if(S.d.mode==='READY'){S.d.mode='SWEEP';addEvent('Post-closing sweep launched');log('Post-closing sweep launched.');}
+ S.sim.running=true;S.sim.last=performance.now();$('chipMode').textContent=S.d.mode;$('missionState').textContent=S.d.mode;
+ $('pauseBtn').disabled=false;alertMsg('Sweep in progress. Listening for 4C 00 12 19 / 0xFEAA / 0xFD69; LoRa link to the reference beacon at home.','good');requestAnimationFrame(frame);}
+function resetSim(silent){
+ S.sim={running:false,t:0,last:0,lastCam:0,lastPoa:0};S.dets=[];S.trail=[];S.events=[];S.queue=[];S.active=null;S.sweepD=0;S.sweepDone=false;S.poaTgt=null;S.sortie=1;S.holding=false;S.endMission=false;S.allFound=false;if($('found'))$('found').style.display='none';
+ if(S.story)S.story.found=null;
+ if(S.route){const p=sampleAt(0);S.d={p:p.p,alt:p.alt,mode:'READY'};const E=endurance();S.batMax=E.sec;S.bat=E.sec;S.reserve=.2*E.sec;}
+ else S.d={p:[0,0],alt:0,mode:'READY'};
+ if(S.poa){S.poa.v=S.poa.prior.slice();drawPOA();}
+ S.beacons.forEach(b=>{b.hits=0;b.best=-999;b.found=false;b.verdict=null;b.track=null;b.confirmT=null;b.attempts=0;showMarker(b);});
+ if(map.getSource('dets')){map.getSource('dets').setData(fc());map.getSource('flown').setData(fc());map.getSource('est').setData(fc());}
+ $('chipMode').textContent='READY';$('s_ft').textContent='—';if(S.route)$('missionState').textContent='ROUTE PLANNED';
+ renderBeacons();renderTimeline();updateDrone();updateClock();
+ if(!silent){$('missionState').textContent='ROUTE PLANNED';log('Simulation reset.');alertMsg('Ready to fly.');}}
+function frame(ts){
+ if(!S.sim.running)return;
+ // carry fractional sim-seconds so slow sim speeds still advance
+ S.sim.frac=(S.sim.frac||0)+Math.max(0,Math.min(.25,(ts-S.sim.last)/1000))*(+$('ts').value);S.sim.last=ts;
+ const n=Math.floor(S.sim.frac);S.sim.frac-=n;
+ for(let i=0;i<n&&S.d.mode!=='LANDED';i++)tick();
+ updateDrone();renderBeacons();
+ if(ts-S.sim.lastPoa>400){S.sim.lastPoa=ts;drawPOA();}
+ if(S.d.mode==='LANDED')return;
+ requestAnimationFrame(frame);}
+function updateClock(){const [h,m]=$('closing').value.split(':').map(Number);const t=h*3600+m*60+S.sim.t;
+ $('clock').textContent=String(Math.floor(t/3600)%24).padStart(2,'0')+':'+String(Math.floor(t/60)%60).padStart(2,'0')+':'+String(Math.floor(t)%60).padStart(2,'0');}
+function updateDrone(){
+ if(!S.route||!map.getSource('drone')||!S.d)return;
+ const d=S.d,gnd=DEM.safe(d.p),agl=d.alt-gnd,top=agl*(+$('exag').value);
+ map.getSource('drone').setData(fc([
+  {type:'Feature',properties:{base:top-3,top:top+3,color:d.mode==='HOMING'||d.mode==='CHECK'?'#ff7777':'#5cc8e8'},geometry:{type:'Polygon',coordinates:[squarePoly(d.p,7)]}},
+  {type:'Feature',properties:{base:0,top:Math.max(0,top-3),color:'#e8f8ff'},geometry:{type:'Polygon',coordinates:[squarePoly(d.p,0.8)]}}]));
+ map.getSource('foot').setData(fc([{type:'Feature',geometry:{type:'Polygon',coordinates:[circlePoly(d.p,Math.max(5,swath(BT.google,agl)))]}}]));
+ map.getSource('dets').setData(fc(S.dets));
+ map.getSource('flown').setData(fc(S.trail.length>1?[{type:'Feature',geometry:{type:'LineString',coordinates:S.trail}}]:[]));
+ map.getSource('est').setData(fc(S.beacons.filter(b=>b.track).map(b=>({type:'Feature',properties:{color:b.track.done?(b.verdict==='PERSON'?'#ff4d4d':'#9aabc2'):'#ff7777'},
+  geometry:{type:'LineString',coordinates:circlePoly(b.track.map,Math.max(15,Math.min(400,b.track.rms)))}}))));
+ $('chipAlt').textContent=`${Math.round(agl)} m AGL · ${Math.round(d.alt)} m MSL`;
+ $('chipBat').textContent=S.batMax?Math.max(0,Math.round(100*S.bat/S.batMax))+'% · '+fmtTime(Math.max(0,S.bat)):'—';
+ $('chipBat').style.color=S.bat-S.reserve<120?'#ff7777':'';
+ $('flightSub').textContent='route '+km(S.sweepD)+' / '+km(S.route.len);
+ $('s_ft').textContent=fmtTime(S.sim.t);
+ if($('follow').checked&&S.sim.running&&performance.now()-(S.sim.lastCam||0)>600){S.sim.lastCam=performance.now();map.easeTo({center:d.p,duration:600,easing:t=>t});}
+ drawProfile();
+}
+// ===================== A/B comparison =====================
+function clockAt(t){const [h,m]=$('closing').value.split(':').map(Number),x=h*3600+m*60+t;return String(Math.floor(x/3600)%24).padStart(2,'0')+':'+String(Math.floor(x/60)%60).padStart(2,'0');}
+// Monte-Carlo test: drop the lost hiker at N random off-trail spots (100–400 m off a high-priority trail, drifting
+// downhill), fly both search patterns against every spot, and report how often each one proposes the person to the ranger.
+async function compareAB(){
+ const hiker=S.beacons.find(b=>b.person);if(!S.route||!hiker){alertMsg('Place a beacon carried by a person first.');return;}
+ const keep=$('pattern').value,N=16,orig={p:hiker.p,ground:hiker.ground};
+ S.sim.running=false;$('abBtn').disabled=true;
+ $('pattern').value='center';planRoute();
+ const starts=[];S.segs.filter(s=>s.planned&&s.prio>=.45).forEach(s=>s.pts.forEach(p=>starts.push(p)));
+ if(!starts.length){alertMsg('No high-priority trail in the plan to test against.');$('abBtn').disabled=false;return;}
+ const trials=[];for(let i=0;i<N;i++){const st=starts[Math.floor(Math.random()*starts.length)],D=100+300*Math.random(),p=walkOffTrail(st,D);trials.push({p,off:distToTrail(p)});}
+ const res={};S.quiet=true;
+ for(const pat of ['center','corridor']){$('pattern').value=pat;planRoute();res[pat]=[];
+  for(let i=0;i<N;i++){const t=trials[i];hiker.p=t.p;hiker.ground=DEM.safe(t.p);
+   alertMsg(`Testing ${pat==='center'?'centerline':'corridor lanes'}: hiker ${i+1}/${N} (${Math.round(t.off)} m off-trail)…`);await sleep(0);
+   resetSim(true);S.d.mode='SWEEP';let k=0;while(S.d.mode!=='LANDED'&&k<9000){tick();k++;}
+   res[pat].push(hiker.confirmT);}}
+ S.quiet=false;hiker.p=orig.p;hiker.ground=orig.ground;hiker.marker.setLngLat(orig.p);
+ $('pattern').value=keep;planRoute();$('abBtn').disabled=false;
+ const buckets=[[100,200],[200,300],[300,450]];
+ const row=pat=>{const all=res[pat].filter(x=>x!=null).length;
+  return {all,by:buckets.map(([lo,hi])=>{const idx=trials.map((t,i)=>i).filter(i=>trials[i].off>=lo&&trials[i].off<hi);return [idx.filter(i=>res[pat][i]!=null).length,idx.length];})};};
+ const c=row('center'),z=row('corridor');
+ const fmt=(lab,r)=>`${lab}: proposed ${r.all}/${N} hikers (`+buckets.map(([lo,hi],j)=>`${lo}–${hi===450?'400':hi} m: ${r.by[j][0]}/${r.by[j][1]}`).join(' · ')+')';
+ S.ab={text:[fmt('Trail sweep → off-trail probability search',c),fmt('Parallel-lane corridor',z)],note:`${N} random lost-hiker positions, 100–400 m off high-priority trails, same drone and battery.`};
+ log('Test — '+S.ab.text.join(' | '));
+ alertMsg(S.ab.text.join('. ')+'.',z.all>c.all?'good':'');
+ renderTimeline();resetSim(true);}
+// ===================== timeline =====================
+const QUANDARY_REAL=[
+ ['Late Jan 2026, afternoon','Storm moves in. 19-year-old hasn’t reached the summit; still on the mountain at nightfall.'],
+ ['Evening','Phone almost dead → no reliable light. He forgot extra light, food and water.'],
+ ['Evening','Rescuers get an “overdue hiker” call — he isn’t asking for help yet.'],
+ ['Night','Summit County Rescue Group + Sheriff launch a night-vision / thermal drone.'],
+ ['~9:00 pm','Spotted on thermal waving his arms; flashlight dropped 50–100 ft away. He walks down to meet teams.']];
+function renderTimeline(){
+ const ab=S.ab?`<div class="bigline" style="background:#1d2a3b;border-color:#38516f">⚖ ${S.ab.text.join('<br>⚖ ')}<div class="msg" style="margin-top:4px">${S.ab.note}</div></div>`:'';
+ const mine=S.events.map(e=>`<div class="tli${e.hot?' hot':''}"><b>${e.clock.slice(0,5)} · T+${fmtTime(e.t)}</b>${e.text}</div>`).join('')||'<div class="msg">Events appear here during the flight.</div>';
+ if(!S.story){$('tl').innerHTML=mine+ab;$('tlSub').textContent='TRAILSAR EVENTS';return;}
+ $('tlSub').textContent='REPORTED INCIDENT vs TRAILSAR SIM';
+ let big='';
+ if(S.story.found){const [h,m]=$('closing').value.split(':').map(Number);const tf=h*3600+m*60+S.story.found,diff=21*3600-tf;
+  const hh=Math.floor(tf/3600),mm=Math.floor(tf/60)%60;
+  big=`<div class="bigline">TrailSAR proposed the hiker to the ranger at <b>${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}</b> — ${fmtTime(S.story.found)} after a routine sunset sweep launched, with no 911 call needed. That is roughly <b>${(diff/3600).toFixed(1)} h before</b> the ~9:00 pm thermal sighting in the real incident.</div>`;}
+ $('tl').innerHTML=`<div class="tl"><div><h3>REPORTED (CBS Colorado 2/2/26 · DroneXL 2/8/26)</h3>${QUANDARY_REAL.map(([t,x])=>`<div class="tli real"><b>${t}</b>${x}</div>`).join('')}</div><div><h3>TRAILSAR SIMULATION (reconstruction)</h3>${mine}</div></div>${big}${ab}`;
+}
+// ===================== Quandary story mode =====================
+async function runQuandaryStory(){
+ $('preset').value=PRESETS.findIndex(p=>p.story==='quandary');$('radius').value=3;
+ applyDefaults();
+ Object.entries({temp:-10,wpop:80,wrisk:20,canopy:2}).forEach(([k,v])=>$(k).value=v);syncLabels();
+ $('closing').value='17:00';$('snow').checked=true;$('pattern').value='center';$('cw').value=350;syncLabels();$('payload').checked=true;$('base').value='topo';
+ const ok=await loadArea(true);if(!ok)return;
+ S.preset=PRESETS[+$('preset').value];
+ S.beacons.forEach(b=>b.marker.remove());S.beacons=[];
+ const main=S.segs.filter(s=>s.boosted&&S.comp[s.a.id]===S.comp[S.home.id]);
+ const pts=[];main.forEach(s=>s.pts.forEach(p=>pts.push({p,e:DEM.safe(p)})));
+ if(!pts.length){log('Quandary trail not found in OSM data — using auto scenario.');autoScenario();return;}
+ pts.sort((a,b)=>a.e-b.e);const hp=pts[Math.floor(pts.length*.7)];
+ if($('hikerPos').value==='off'){
+  const hpos=walkOffTrail(hp.p,320,S.launch),dt=Math.round(distToTrail(hpos));
+  addBeacon('findmy',hpos,true,`WHAT-IF: 19-y/o hiker took the wrong gully descending in the storm, ~${dt} m off-trail on the far side of the ridge, phone near-dead (Find My offline beacon)`);
+ } else addBeacon('findmy',offset(hp.p,12,-8),true,`19-y/o hiker on the upper trail (${Math.round(hp.e)} m), phone near-dead (Find My offline beacon) — reconstructed position`);
+ const low=pts[Math.floor(pts.length*.2)];
+ addBeacon('findmy',offset(low.p,-6,5),false,'AirTag lost on lower trail earlier in the day (decoy)');
+ addBeacon('ref',offset(S.launch,8,8),false,'reference / calibration beacon at trailhead');
+ S.story={found:null};resetSim(true);
+ $('missionState').textContent='STORY READY';
+ alertMsg('Quandary Peak, late January, ~5 pm sunset. Snow, −10 °C, 3,300 m+ launch (thin air + cold cut endurance). A hiker is still on the upper mountain with a dying phone. Nobody has called for help yet. Press ▶ Run mission.','alert');
+ log('Story mode: Quandary Peak sunset sweep ready.');
+ map.flyTo({center:S.launch,zoom:13,pitch:65,bearing:-70});
+}
+// ===================== elevation profile =====================
+function drawProfile(){
+ const c=$('profile'),dpr=devicePixelRatio||1,W=c.clientWidth,H=170;c.width=W*dpr;c.height=H*dpr;const g=c.getContext('2d');g.scale(dpr,dpr);
+ g.fillStyle='#101c2a';g.fillRect(0,0,W,H);if(!S.route)return;
+ const sm=S.route.smp,L=S.route.len;let lo=Infinity,hi=-Infinity;sm.forEach(s=>{lo=Math.min(lo,s.ground);hi=Math.max(hi,s.alt,s.ground+122);});
+ const pad=(hi-lo)*.08+5;lo-=pad;hi+=pad;const ml=46,mr=10,mt=10,mb=20;
+ const X=d=>ml+(W-ml-mr)*d/L,Y=z=>mt+(H-mt-mb)*(1-(z-lo)/(hi-lo));
+ g.strokeStyle='#22324a';g.fillStyle='#9aabc2';g.font='10px system-ui';g.lineWidth=1;
+ for(let k=0;k<=4;k++){const z=lo+(hi-lo)*k/4;g.beginPath();g.moveTo(ml,Y(z));g.lineTo(W-mr,Y(z));g.stroke();g.fillText(Math.round(z)+' m',4,Y(z)+3);}
+ for(let k=0;k<=5;k++)g.fillText(km(L*k/5),X(L*k/5)-14,H-5);
+ g.beginPath();g.moveTo(X(0),Y(lo));sm.forEach(s=>g.lineTo(X(s.d),Y(s.ground)));g.lineTo(X(L),Y(lo));g.closePath();g.fillStyle='#3a4a3a';g.fill();
+ g.beginPath();sm.forEach((s,i)=>i?g.lineTo(X(s.d),Y(s.buf)):g.moveTo(X(s.d),Y(s.buf)));g.strokeStyle='rgba(214,189,131,.5)';g.stroke();
+ g.setLineDash([4,4]);g.beginPath();sm.forEach((s,i)=>i?g.lineTo(X(s.d),Y(s.ground+121.9)):g.moveTo(X(s.d),Y(s.ground+121.9)));g.strokeStyle='rgba(255,77,210,.6)';g.stroke();g.setLineDash([]);
+ g.lineWidth=2;for(let i=1;i<sm.length;i++){g.beginPath();g.moveTo(X(sm[i-1].d),Y(sm[i-1].alt));g.lineTo(X(sm[i].d),Y(sm[i].alt));g.strokeStyle=sm[i].st==='high'?'#ff4dd2':(sm[i].d<=S.sweepD?'#5cc8e8':'rgba(92,200,232,.4)');g.stroke();}
+ if(S.d&&S.d.mode!=='READY'){const p=sampleAt(S.sweepD),on=S.d.mode==='SWEEP';g.strokeStyle=on?'#fff':'#ff7777';g.lineWidth=1;g.beginPath();g.moveTo(X(S.sweepD),mt);g.lineTo(X(S.sweepD),H-mb);g.stroke();
+  g.fillStyle=on?'#5cc8e8':'#ff7777';g.beginPath();g.arc(X(S.sweepD),Y(p.alt),4,0,7);g.fill();if(!on){g.fillText('off-route: '+S.d.mode,X(S.sweepD)+6,mt+10);}}
+ g.fillStyle='#9aabc2';g.fillText('— drone altitude   ┅ 120 m AGL   ▬ terrain',W-230,H-mb-6);
+}
+window.addEventListener('resize',drawProfile);
+drawProfile();updateClock();renderTimeline();
+</script>
+</body>
+</html>

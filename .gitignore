@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Run output: logs and camera snapshots stay off GitHub (privacy; see CLAUDE.md)
+runs/
+snaps/
+live/
+*.log
+
+# Secrets never go in the repo
+*.key
+.env

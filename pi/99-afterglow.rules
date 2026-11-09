@@ -1,0 +1,10 @@
+# Stable name for the radar kit, the pod's only USB serial device (never hard-code ttyACM0).
+# 1. Plug in the radar and run:  udevadm info -q property -n /dev/ttyACM0 | grep -E 'ID_SERIAL_SHORT|ID_VENDOR_ID|ID_MODEL_ID'
+# 2. Put its ID_SERIAL_SHORT below.
+# 3. sudo cp 99-afterglow.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+# Then /dev/radar always points at the radar.
+SUBSYSTEM=="tty", ENV{ID_SERIAL_SHORT}=="REPLACE_WITH_RADAR_SERIAL", SYMLINK+="radar"
+
+# Thermal camera (HTI HT-203U, shows up as "HikCamera", USB 2bdf:0102): /dev/thermal is its capture node
+# (index 0). The Camera Module 3 also makes /dev/video* nodes, so never use /dev/videoN.
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="2bdf", ATTRS{idProduct}=="0102", ATTR{index}=="0", SYMLINK+="thermal"

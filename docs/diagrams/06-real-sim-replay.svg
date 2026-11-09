@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="388" viewBox="0 0 1120 388" role="img" aria-label="One code path. The real pod, the simulator (fake_bus.py, Acadia trails) and replay.py of a recorded run all publish the same MQTT topics, checked by contracts.validate(). The same real modules process them. The operator TV badges each view LIVE, SIMULATED or REPLAY from the pose source, and 378 pytest tests drive the same module classes with a stub bus and no hardware.">
+  <title>One code path: real, simulated or replayed</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #1e293b; }
+    .h1 { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13.5px; fill: #64748b; }
+    .zl { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; fill: #64748b; }
+    .bt { font-size: 14px; font-weight: 600; }
+    .bs { font-size: 12px; fill: #475569; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .tp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; fill: #334155; }
+    .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.3; }
+    .e { fill: none; stroke: #475569; stroke-width: 1.6; }
+    .cap { font-size: 12.5px; fill: #64748b; }
+    .badge { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; }
+  </style>
+
+  <rect width="1120" height="388" fill="#ffffff"/>
+  <text class="h1" x="24" y="42">One code path · real, simulated or replayed</text>
+  <text class="sub" x="24" y="66">The modules can't tell where their data comes from, so the tests and the Acadia simulation run the real code.</text>
+
+  <!-- sources -->
+  <text class="zl" x="32" y="96">DATA SOURCE</text>
+  <rect class="box" x="32" y="106" width="280" height="64" rx="8"/>
+  <text class="bt" x="46" y="128">Real pod</text>
+  <text class="bs" x="46" y="146">ESP32 boards, IMU, thermal, camera</text>
+  <text class="tp" x="46" y="162" style="fill:#64748b">afterglow.toml · 60 State St, Boston</text>
+
+  <rect class="box" x="32" y="186" width="280" height="64" rx="8"/>
+  <text class="bt" x="46" y="208">Simulation</text>
+  <text class="bs" x="46" y="226">tools/fake_bus.py: drone + beacons</text>
+  <text class="tp" x="46" y="242" style="fill:#64748b">park.toml · Acadia, real OSM trails</text>
+
+  <rect class="box" x="32" y="266" width="280" height="64" rx="8"/>
+  <text class="bt" x="46" y="288">Replay</text>
+  <text class="bs" x="46" y="306">tools/replay.py: a recorded run,</text>
+  <text class="bs" x="46" y="322">with its original timing</text>
+
+  <path class="e" d="M312,138 H410" marker-end="url(#a)"/>
+  <text class="tp" x="361" y="131" text-anchor="middle">src: imu, gps</text>
+  <path class="e" d="M312,218 H410" marker-end="url(#a)"/>
+  <text class="tp" x="361" y="211" text-anchor="middle">src: sim</text>
+  <path class="e" d="M312,298 H410" marker-end="url(#a)"/>
+  <text class="tp" x="361" y="291" text-anchor="middle">src: replay</text>
+
+  <!-- middle -->
+  <text class="zl" x="412" y="96">SAME CODE</text>
+  <rect x="412" y="106" width="280" height="224" rx="10" fill="#eef2f7" stroke="#64748b" stroke-width="1.8"/>
+  <text class="bt" x="552" y="130" text-anchor="middle">MQTT topics</text>
+  <text class="bs" x="552" y="148" text-anchor="middle">one JSON object each, all ag/…</text>
+  <text class="bs" x="552" y="165" text-anchor="middle">checked by <tspan class="mono" font-size="11.5">contracts.validate()</tspan></text>
+  <line x1="432" y1="182" x2="672" y2="182" stroke="#cbd5e1"/>
+  <text class="bt" x="552" y="206" text-anchor="middle">The real modules</text>
+  <text class="mono" x="552" y="228" text-anchor="middle" font-size="12">tracker · locate · geofence</text>
+  <text class="mono" x="552" y="246" text-anchor="middle" font-size="12">planner · lora_out · lora_rx</text>
+  <text class="mono" x="552" y="264" text-anchor="middle" font-size="12">cot_out · dashboard</text>
+  <text class="bs" x="552" y="294" text-anchor="middle">every one also runs with --dry-run:</text>
+  <text class="bs" x="552" y="310" text-anchor="middle">no broker, no hardware</text>
+
+  <!-- right -->
+  <text class="zl" x="792" y="96">WHERE IT SHOWS</text>
+  <path class="e" d="M692,152 H790" marker-end="url(#a)"/>
+  <text class="tp" x="741" y="145" text-anchor="middle">every topic</text>
+  <rect class="box" x="792" y="106" width="296" height="96" rx="8"/>
+  <text class="bt" x="806" y="128">Operator TV</text>
+  <text class="bs" x="806" y="146">badges every view from the pose source</text>
+  <rect x="806" y="160" width="118" height="24" rx="12" fill="#dcfce7"/>
+  <text class="badge" x="865" y="176" text-anchor="middle" style="fill:#166534">LIVE · REAL POD</text>
+  <rect x="932" y="160" width="86" height="24" rx="12" fill="#fef3c7"/>
+  <text class="badge" x="975" y="176" text-anchor="middle" style="fill:#92400e">SIMULATED</text>
+  <rect x="1026" y="160" width="56" height="24" rx="12" fill="#ede9fe"/>
+  <text class="badge" x="1054" y="176" text-anchor="middle" style="fill:#5b21b6">REPLAY</text>
+
+  <path class="e" d="M790,272 H694" marker-end="url(#a)"/>
+  <text class="tp" x="741" y="265" text-anchor="middle">same classes</text>
+  <rect class="box" x="792" y="226" width="296" height="104" rx="8"/>
+  <text class="bt" x="806" y="248">pytest · 378 tests</text>
+  <text class="bs" x="806" y="268">drive each module's class with a stub bus</text>
+  <text class="bs" x="806" y="285">that collects what it publishes;</text>
+  <text class="bs" x="806" y="302">every message must pass validate()</text>
+  <text class="bs" x="806" y="319">no hardware, no broker</text>
+
+  <text class="cap" x="24" y="366">On a laptop, tools/local_stack.py runs the simulation or a replay through the real tracker, locate and geofence in one process, with no broker.</text>
+</svg>

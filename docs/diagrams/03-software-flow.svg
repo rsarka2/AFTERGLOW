@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1140" height="596" viewBox="0 0 1140 596" role="img" aria-label="Software data flow. On the pod, bridge hashes addresses and publishes ag/obs/ble and ag/obs/wifi to tracker; tracker combines them with ag/pose from position and publishes ag/track to geofence and locate; geofence applies the ranger's rules, also reads ag/sos and ag/thermal, and publishes ag/target to lora_out and planner; lora_out sends 16-byte alerts through the RFM95W radio to the laptop. The operator TV on the laptop reads every topic over Wi-Fi and sends the ranger's clicks back as ag/ctrl and ag/mode.">
+  <title>AFTERGLOW software data flow</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#475569"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d4ed8"/></marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #1e293b; }
+    .h1 { font-size: 22px; font-weight: 700; }
+    .sub { font-size: 13.5px; fill: #64748b; }
+    .zl { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; fill: #64748b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; font-weight: 700; }
+    .bt { font-size: 13.5px; font-weight: 600; }
+    .bs { font-size: 11.5px; fill: #475569; }
+    .tp { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; fill: #334155; }
+    .o { fill: #c2410c; }
+    .b { fill: #1d4ed8; }
+    .r { fill: #b91c1c; }
+    .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.3; }
+    .e { fill: none; stroke: #475569; stroke-width: 1.6; }
+    .eo { fill: none; stroke: #c2410c; stroke-width: 2.4; }
+    .wifi { fill: none; stroke: #475569; stroke-width: 1.6; stroke-dasharray: 5 4; }
+    .wifib { fill: none; stroke: #1d4ed8; stroke-width: 1.6; stroke-dasharray: 5 4; }
+    .cap { font-size: 12.5px; fill: #64748b; }
+  </style>
+
+  <rect width="1140" height="596" fill="#ffffff"/>
+  <text class="h1" x="24" y="42">Software · how a beacon becomes a pin</text>
+  <text class="sub" x="24" y="66">Each box is its own Python process. They talk only through MQTT topics, and contracts.validate() checks every message.</text>
+
+  <!-- zones -->
+  <rect x="16" y="84" width="874" height="440" rx="14" fill="#eef2f7" stroke="#d5dde8"/>
+  <text class="zl" x="32" y="106">THE POD · RASPBERRY PI 5 · MOSQUITTO ON LOCALHOST:1883</text>
+  <rect x="950" y="84" width="174" height="440" rx="14" fill="#edf5ef" stroke="#d3e5d8"/>
+  <text class="zl" x="966" y="106">RANGER'S LAPTOP</text>
+
+  <!-- R0: thermal -->
+  <rect class="box" x="36" y="122" width="140" height="48" rx="8"/>
+  <text class="mt" x="106" y="141" text-anchor="middle">thermal</text>
+  <text class="bs" x="106" y="159" text-anchor="middle">HT-203U → warm spot</text>
+
+  <!-- top routes into geofence -->
+  <path class="e" d="M176,146 H610 V204" marker-end="url(#a)"/>
+  <text class="tp" x="330" y="140" text-anchor="middle">ag/thermal</text>
+  <path class="e" d="M140,206 V186 H540 V204" marker-end="url(#a)"/>
+  <text class="tp" x="330" y="180" text-anchor="middle">ag/sos  (SOS page answers)</text>
+
+  <!-- R1 -->
+  <rect class="box" x="36" y="206" width="140" height="66" rx="8" stroke="#b91c1c" stroke-width="1.6"/>
+  <text class="mt" x="106" y="226" text-anchor="middle">bridge</text>
+  <text class="bs" x="106" y="245" text-anchor="middle">ESP32 serial lines in</text>
+  <text class="bs r" x="106" y="262" text-anchor="middle" font-weight="600">hashes every address</text>
+
+  <rect class="box" x="270" y="206" width="140" height="66" rx="8"/>
+  <text class="mt" x="340" y="226" text-anchor="middle">tracker</text>
+  <text class="bs" x="340" y="245" text-anchor="middle">signal + pose → x, y</text>
+  <text class="bs" x="340" y="261" text-anchor="middle">and a 95% radius</text>
+
+  <rect class="box" x="504" y="206" width="140" height="66" rx="8" stroke-width="1.8" stroke="#475569"/>
+  <text class="mt" x="574" y="226" text-anchor="middle">geofence</text>
+  <text class="bs" x="574" y="245" text-anchor="middle">ranger's rules → pins</text>
+  <text class="bs" x="574" y="261" text-anchor="middle">owns every pin record</text>
+
+  <rect class="box" x="738" y="206" width="140" height="66" rx="8"/>
+  <text class="mt" x="808" y="226" text-anchor="middle">lora_out</text>
+  <text class="bs" x="808" y="245" text-anchor="middle">pins → radio alerts</text>
+  <text class="bs" x="808" y="261" text-anchor="middle">obeys lora_off</text>
+
+  <path class="e" d="M176,239 H268" marker-end="url(#a)"/>
+  <text class="tp" x="223" y="232" text-anchor="middle">ag/obs/ble</text>
+  <text class="tp" x="223" y="254" text-anchor="middle">ag/obs/wifi</text>
+  <path class="e" d="M410,239 H502" marker-end="url(#a)"/>
+  <text class="tp" x="457" y="232" text-anchor="middle">ag/track</text>
+  <path class="e" d="M644,239 H736" marker-end="url(#a)"/>
+  <text class="tp" x="691" y="232" text-anchor="middle">ag/target</text>
+
+  <!-- R1 -> R2 -->
+  <path class="e" d="M340,272 V324" marker-end="url(#a)"/>
+  <text class="tp" x="348" y="303">ag/track</text>
+  <path class="e" d="M574,272 V324" marker-end="url(#a)"/>
+  <text class="tp" x="582" y="303">ag/target</text>
+  <path class="eo" d="M808,272 V324" marker-end="url(#ao)"/>
+  <text class="tp o" x="816" y="303">16 bytes</text>
+
+  <!-- position -> tracker, locate -->
+  <path class="e" d="M150,326 V300 H300 V274" marker-end="url(#a)"/>
+  <text class="tp" x="225" y="294" text-anchor="middle">ag/pose</text>
+
+  <!-- R2 -->
+  <rect class="box" x="36" y="326" width="140" height="66" rx="8"/>
+  <text class="mt" x="106" y="346" text-anchor="middle">position</text>
+  <text class="bs" x="106" y="365" text-anchor="middle">IMU steps or GPS</text>
+  <text class="bs" x="106" y="381" text-anchor="middle">→ x, y in metres</text>
+
+  <rect class="box" x="270" y="326" width="140" height="66" rx="8"/>
+  <text class="mt" x="340" y="346" text-anchor="middle">locate</text>
+  <text class="bs" x="340" y="365" text-anchor="middle">coverage + probability</text>
+  <text class="tp" x="340" y="381" text-anchor="middle">→ ag/coverage</text>
+
+  <rect class="box" x="504" y="326" width="140" height="66" rx="8"/>
+  <text class="mt" x="574" y="346" text-anchor="middle">planner</text>
+  <text class="bs" x="574" y="365" text-anchor="middle">proposes legs only</text>
+  <text class="tp" x="574" y="381" text-anchor="middle">→ ag/plan</text>
+
+  <rect class="box" x="738" y="326" width="140" height="66" rx="8" stroke="#c2410c" stroke-width="1.6"/>
+  <text class="bt" x="808" y="346" text-anchor="middle">RFM95W</text>
+  <text class="bs" x="808" y="365" text-anchor="middle">pod radio on SPI1</text>
+  <text class="bs" x="808" y="381" text-anchor="middle">pin + heartbeat</text>
+
+  <path class="e" d="M176,359 H268" marker-end="url(#a)"/>
+  <text class="tp" x="223" y="352" text-anchor="middle">ag/pose</text>
+
+  <!-- R3 -->
+  <rect class="box" x="36" y="430" width="140" height="66" rx="8"/>
+  <text class="mt" x="106" y="450" text-anchor="middle">camera</text>
+  <text class="bs" x="106" y="469" text-anchor="middle">Camera Module 3</text>
+  <text class="tp" x="106" y="485" text-anchor="middle">→ live/camera.jpg</text>
+
+  <rect class="box" x="270" y="430" width="140" height="66" rx="8"/>
+  <text class="mt" x="340" y="450" text-anchor="middle">health</text>
+  <text class="bs" x="340" y="469" text-anchor="middle">temps, disk, parts</text>
+  <text class="tp" x="340" y="485" text-anchor="middle">→ ag/sys</text>
+
+  <!-- pod <-> laptop -->
+  <path class="wifi" d="M890,232 H964" marker-end="url(#a)"/>
+  <text class="tp" x="920" y="225" text-anchor="middle">ag/#</text>
+  <text class="bs" x="920" y="248" text-anchor="middle" fill="#64748b">Wi-Fi</text>
+  <path class="wifib" d="M966,280 H892" marker-end="url(#ab)"/>
+  <text class="tp b" x="922" y="273" text-anchor="middle">ag/ctrl</text>
+  <text class="tp b" x="922" y="296" text-anchor="middle">ag/mode</text>
+  <path class="eo" d="M878,364 H964" marker-end="url(#ao)"/>
+  <text class="tp o" x="922" y="356" text-anchor="middle">915 MHz</text>
+
+  <!-- laptop -->
+  <rect class="box" x="966" y="196" width="142" height="104" rx="8" stroke-width="1.6"/>
+  <text class="bt" x="1037" y="218" text-anchor="middle">Operator TV</text>
+  <text class="tp" x="1037" y="236" text-anchor="middle">dashboard.py</text>
+  <text class="bs" x="1037" y="256" text-anchor="middle">reads every topic</text>
+  <text class="bs" x="1037" y="272" text-anchor="middle">+ camera and heat</text>
+  <text class="bs b" x="1037" y="290" text-anchor="middle" font-weight="600">ranger clicks here</text>
+
+  <path class="e" d="M1037,326 V302" marker-end="url(#a)"/>
+  <text class="tp" x="1045" y="318">ag/alert</text>
+
+  <rect class="box" x="966" y="326" width="142" height="76" rx="8"/>
+  <text class="bt" x="1037" y="346" text-anchor="middle">LoRa receive</text>
+  <text class="bs" x="1037" y="363" text-anchor="middle">Pluto SDR → lora_rx</text>
+  <text class="bs" x="1037" y="379" text-anchor="middle">→ cot_out</text>
+  <text class="bs" x="1037" y="395" text-anchor="middle">→ ATAK / iTAK</text>
+
+  <rect class="box" x="966" y="430" width="142" height="66" rx="8"/>
+  <text class="mt" x="1037" y="450" text-anchor="middle">case</text>
+  <text class="bs" x="1037" y="469" text-anchor="middle">missing-person case</text>
+  <text class="bs r" x="1037" y="485" text-anchor="middle" font-weight="600">never on bus or LoRa</text>
+
+  <!-- notes -->
+  <text class="cap" x="24" y="552">ag/pose also feeds geofence, planner, thermal and lora_out (for the heartbeat). The TV reads every topic; each module subscribes only to what it needs.</text>
+  <text class="cap" x="24" y="574"><tspan fill="#1d4ed8" font-weight="600">The ranger's clicks</tspan> reach geofence (pin status), planner (accept or reject a leg), lora_out (radio off) and bridge, tracker and locate (new search).   <tspan fill="#b91c1c" font-weight="600">Red:</tspan> privacy boundaries.</text>
+</svg>

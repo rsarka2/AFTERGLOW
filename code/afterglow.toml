@@ -1,0 +1,263 @@
+# Shared settings for the pod and the laptop. Copy this file to both and keep
+# them identical; in particular the origin, or ATAK markers land in the wrong place.
+#
+# This is the DEMO profile: the taped indoor park, real pod data. park.toml is the
+# park-scale profile (real Acadia trails, laptop-only, fed by fake_bus.py or sim.py).
+# Pick one with --config or AFTERGLOW_CONFIG. Both files must have the same keys
+# (tests/test_parkmap.py checks), so add a new key to both.
+
+[mission]
+name = "60 State Street"   # shown in the dashboard header: the taped indoor park at the venue
+# Mission origin: every module works in metres east (x) and north (y) of here.
+# Leave both at 0.0 to use the GPS's first good fix (position.py prints it; copy it
+# here and onto the laptop). For the indoor demo, set it to the coordinates you map
+# taped waypoint 0 to.
+# Indoor demo: 60 State Street, Boston (the venue; GPS can't get a fix inside), so the TV map
+# and the ATAK markers land on the building. Waypoint 0 is here. If you change these two values,
+# rerun tools/make_indoor_map.py, because the map files are in lon/lat around this point.
+# (Was Acadia, 44.3386, -68.2733, the point the docs/CONTRACTS.md examples use.)
+origin_lat = 42.35889
+origin_lon = -71.05667
+# Salt for hashing device addresses. Empty = a new random salt each run.
+salt = ""
+
+[mqtt]
+host = "localhost"
+port = 1883
+
+[serial]
+omni = "/dev/ttyAMA0"      # UART0, Pi pins 8 (TX) and 10 (RX) <-> OMNI D9 (RX) and D10 (TX)
+wifi = "/dev/ttyAMA3"      # UART3, Pi pins 24 (TX) and 21 (RX) <-> WIFI D9 (RX) and D10 (TX)
+# GPS: NEO-F10N on UART2 (Pi pins 7 TX, 29 RX) works, but keep "" (taped waypoints) for the
+# indoor demo: a fix would place the pod relative to the Acadia origin. "/dev/ttyAMA2" outdoors.
+gps = ""
+esp_baud = 921600
+gps_baud = 38400           # most u-blox M10 modules; check_hw.py finds the real one
+# The radar is the only USB device. Use the udev symlink (pi/99-afterglow.rules)
+# or /dev/serial/by-id/..., never ttyACM0.
+radar = "/dev/radar"
+
+[i2c]
+imu_addr = 0x4B            # SparkFun BNO086, ADR jumper open (0x4A only if ADR is bridged)
+
+[thermal]
+# thermal.py: the HTI HT-203U, a USB video device. Never /dev/videoN: the Camera Module 3
+# makes /dev/video* nodes too, so the numbers shift between boots.
+device = "/dev/thermal"    # udev symlink (pi/99-afterglow.rules); falls back to /dev/v4l/by-id/*HikCamera*
+fps = 4                    # live/thermal.png and ag/thermal this often
+rotate = 270               # = 90 counterclockwise. 0, 90, 180 or 270 degrees clockwise, so the picture is upright as mounted
+flip = false               # mirror left-right
+# hot, when the camera gives temperatures: a body-warm spot well above the rest of the frame (placeholders)
+hot_min_c = 30.0
+hot_max_c = 45.0           # warmer is an engine or a sun-baked rock, not a person
+hot_rise_c = 5.0           # degrees above the frame's median
+# hot, when it gives only a picture (no temperatures): how far the spot stands out, in spreads of the frame
+hot_z = 6.0
+# Never hot above this height (ag/pose z): a person is too few pixels there. Placeholder: measure the height
+# at which a person still covers about 3 x 3 pixels (the spot is a 3 x 3 mean). Indoors the pod is at 3 m.
+max_alt_m = 30.0
+# HT-203U raw heat -> degrees C = (raw + drift) / raw_per_c - raw_offset_c (check Sat 7 Nov:
+# a wall read 5101, a palm 5303). The offset is set so the wall reads 22 C; redo it against a known temperature.
+raw_per_c = 16.0
+raw_offset_c = 296.8
+# The raw values sag as the camera warms (a wall: 5101 at sensor 22.5 C, 4998 at 24.7 C): add
+# raw_sensor_k counts per degree of sensor temperature above raw_sensor_ref_c (header word 0).
+raw_sensor_k = 47.7
+raw_sensor_ref_c = 22.5
+# Even so the HT-203U's absolute reading drifts (a wall read 16 C after warm-up). false: shift each frame
+# so its median (the background) reads ambient_c; a person still stands out by the same degrees, so
+# the hot band above keeps working and max_c is approximate. true: trust the calibration above.
+absolute = false
+ambient_c = 22.0           # indoors; set to the air temperature outdoors
+
+[camera]
+# camera.py: the Camera Module 3 -> live/camera.jpg, a live view for the dashboard's camera panel.
+# No detection (person detection is a stretch goal). The picture shows the time it was taken.
+fps = 2                    # pictures a second (the panel reloads about once a second; MJPEG is tier 2)
+sensor_fps = 10            # frames a second the sensor runs at (never below fps): saves Pi CPU, still short exposures
+width = 1280              # picture size: the whole field of view, scaled down from the 2304x1296 sensor mode
+height = 720
+quality = 80               # JPEG quality, 1-95 (lower = smaller files over the hotspot)
+rotate = 90                # 0, 90, 180 or 270 degrees clockwise, so the picture is upright as mounted
+flip = false               # mirror left-right
+
+[lora]
+# Pod: one bare RFM95W (SX1276) on Pi SPI1 (afterglow/radio.py): plain LoRa, a RadioHead-style
+# 4-byte header, then the 16-byte alert. Laptop: ADALM-PLUTO SDR + gr-lora_sdr (tools/pluto_rx.py),
+# which reads these numbers from this file. (Old path, unused: XIAO #3 + lora_rx.ino, which copies them;
+# tests/test_lora_rx.py checks.)
+freq_mhz = 915.0
+sf = 7                     # 7 to start; 9-10 for more range at lower speed (ME 2's range test)
+bw_hz = 125000
+cr = 5                     # coding rate 4/5
+preamble = 8
+tx_power_dbm = 13          # pod only, 5-20; start at 13. The laptop radio never transmits
+pod_node = 0xA1            # header "from" of every pod packet
+laptop_node = 0xA2         # header "to"; lora_rx.py drops anything else (no private channel)
+cs_gpio = 18               # pod radio CS, Pi pin 12, driven by the library (config.txt moves the kernel's CS to GPIO16)
+reset_gpio = 25            # pod radio RST, Pi pin 22
+rx_port = ""               # laptop, old XIAO #3 path only: its port; "" = the only /dev/cu.usbmodem* or /dev/ttyACM*
+rx_baud = 115200
+# lora_out.py (pod). No acks: every live pin and the heartbeat repeat this often, so a lost packet is covered.
+repeat_s = 5
+alert_version = 1          # 1 = decimetres (indoor: x, y to +-3.2 km, r95 to 25.5 m); 2 = metres (park scale)
+off_file = "runs/lora_off.json"  # lora_off is remembered here (relative to this file), so a restart stays silent; "" = not remembered
+
+[pose]
+# Height used when the GPS can't give one (props-off carried demo): metres above ground.
+carry_height_m = 3.0
+publish_hz = 5
+# Where position.py gets the pose. "gps" = NMEA on [serial] gps (falls back to waypoint taps
+# when gps = ""), "imu" = the BNO086 walk along [imu] line, "waypoints" = taps only.
+source = "imu"             # 60 State Street: no GPS indoors, so the pod is walked along a straight line
+
+[imu]
+# [pose] source = "imu": someone carries the pod from line_from towards line_to. Distance walked =
+# the BNO086's step count x stride_m, clamped to the line. The game rotation vector gives a heading
+# for show only. A waypoint tap re-anchors the walk to that waypoint's spot on the line.
+line_from = [0.0, 0.0]     # metres; along the taped trail (waypoints 0..3 run 0..9 m east)
+line_to = [10.0, 0.0]
+stride_m = 0.7             # metres per step
+hall_w_m = 3.0             # the TV draws the hall this wide around the line; the dashboard reads it
+
+[track]
+# tracker.py sets a track's state from its r95. Placeholders until ME 2's range test.
+localized_r95_m = 5.0      # indoors 5 m (park.toml: 25 m)
+pinned_r95_m = 2.0         # indoors 2 m (park.toml: 10 m)
+pass_gap_s = 5             # this long without a sighting ends a pass (park.toml: 10)
+rotate_window_s = 60       # key rotation: a new id joins an old track whose id went quiet this recently...
+rotate_match_m = 10.0      # ...if the pod heard both within this distance (park.toml: 80)
+with_drone_rssi = -55      # a beacon whose median RSSI stays this loud...
+with_drone_move_m = 5.0    # ...while the pod moves this far rides on the pod (park.toml: 30)
+# RSSI model for the position estimate, rssi = p0 - 10 n log10(d) +- sigma, d in metres.
+# ME 2's range test sets these; until then they match [sim], so the tracker fits the fake bus.
+rssi_p0 = -48.0            # RSSI at 1 m
+rssi_p0_sd = 6.0           # how far one beacon's p0 may stray (an AirTag vs a phone)
+rssi_n = 2.4
+rssi_sigma = 4.0
+
+[rules]
+offtrail_m = 3             # indoor scale (park.toml: 30). Day patrol: pin a beacon farther than this from a trail...
+min_passes = 2             # ...seen on at least this many passes
+pin_hold_s = 15            # a rule must hold this long before a pin: early estimates jump about, with_drone takes a few s
+sos_r95_m = 30.0           # r95 of an SOS-only pin: the SOS page's Wi-Fi range (placeholder)
+thermal_near_m = 2.0       # indoor scale (park.toml: 10). flags.thermal on the investigated pin only with the pod this close to its 95% circle (placeholder)
+night_start = "21:00"
+night_end = "06:00"
+# geofence.py saves its pins here (relative to this file), so a restart doesn't reuse P1. "" = don't save.
+# Runs are never committed. Older than pins_max_age_min at start-up: start fresh at P1 (or run it with --fresh).
+pins_file = "runs/pins_demo.json"
+pins_max_age_min = 60
+trails_geojson = "data/trails.geojson"
+zones_geojson = "data/zones.geojson"
+# The building outline for the TV's Live tab (dashboard only). tools/make_indoor_map.py writes it;
+# "" = no building. The 60 State Street outline is APPROXIMATE: replace it with the real one if you can.
+building_geojson = "data/building.geojson"
+
+[locate]
+# Placeholders until ME 2's range test. Indoors use about 1 m cells; outdoors about 5 m.
+cell_m = 1.0               # coverage and probability grid cell size (ag/coverage)
+detect_m = 4.0             # indoor scale (park.toml: 40). A cell counts as covered once the pod passes within this distance
+area_m = []                # [x0, y0, x1, y1] the grids cover; empty = the map's "park" zone. Keep it under 20,000 cells, or the cells grow
+stale_s = 30               # a track not updated this long (the tracker dropped it) leaves the probability grid
+
+[plan]
+# planner.py -> ag/plan. It only proposes: the ranger accepts or rejects each plan, and the pilot flies
+# it by hand. Distances are placeholders until ME 2's range test.
+alt_m = 3.0                # patrol and grid legs fly this high (indoors: the carry height; park.toml: 40)
+homing_alt_m = 3.0         # homing legs, low for the thermal and camera check (park.toml: 25)
+cross_m = 3.0              # homing: the crossing pass runs this far past the pin; the first orbit is at most this wide (park.toml: 30)
+min_orbit_m = 1.0          # homing: no orbit tighter than this (park.toml: 20)
+lane_m = 3.0               # grid: lanes at most this far apart; under 2 x [locate] detect_m, so they overlap (park.toml: 60)
+patrol_m = 0.0             # patrol: fly this much of the trail, from where it passes nearest the pod; 0 = all of it (park.toml: 1200)
+arrive_m = 0.5             # a leg counts as flown with the pod this close to its end; keep it under min_orbit_m (park.toml: 10)
+
+[health]
+# health.py -> ag/sys for the dashboard's Pod panel. It never opens a radio, port or camera.
+period_s = 5               # publish this often
+stale_s = 30               # a part (omni, wifi, thermal, camera, GPS fix) counts as working if heard within this
+
+[http]
+# dashboard.py serves the dashboard and these folders on one port. Paths are relative to code/.
+port = 8080
+live_dir = "live"          # live/thermal.png (thermal.py), live/camera.jpg (camera.py)
+snaps_dir = "snaps"        # snaps/<t>.jpg, the path in ag/vision "snap" (stretch: the person detector)
+# The location tabs on the operator TV. Each site is its own dashboard on this machine at its port
+# (its profile's [http] port); the TV links between them. pod = true: the real pod flies there, so the
+# TV shows its components' health on the main view. Same list in both profiles.
+sites = [
+  { name = "Acadia NP", tag = "simulation", profile = "park", port = 8081, pod = false },
+  { name = "60 State St", tag = "live demo", profile = "afterglow", port = 8080, pod = true },
+]
+
+[atak]
+# cot_out.py (laptop): ATAK markers from ag/alert, or from ag/target over Wi-Fi with --wifi.
+# ATAK's default multicast group. If the router drops multicast, add the phone's own address,
+# "udp://<phone-ip>:4242" (ATAK's default unicast input; check Settings > Network > Manage Inputs).
+send_to = ["udp://239.2.3.1:6969"]
+iface = ""                 # the laptop's IP on the travel router, so multicast leaves there; "" = the system's choice
+# cot_out is also a tiny TAK server on this port (plain TCP, 0 = off). iTAK takes multicast for SA only,
+# so on an iPhone: iTAK Settings > Network > Servers > add this laptop's IP, this port, protocol TCP.
+tcp_port = 8087
+stale_s = 120              # a marker goes stale this long after its last update (lora_out repeats every 5 s)
+repeat_s = 5               # --wifi only: resend each live pin this often, as lora_out does over LoRa; stop after 3x this with nothing from the Pi
+pod_every_s = 2            # --wifi only: the pod marker at most this often (ag/pose comes at 5 Hz)
+circles = true             # also draw each pin's 95% circle
+
+[search]
+# Trail pathing on the TV dashboard (tv.html) and afterglow/trails.py. Laptop only: the case
+# (name, age, description) is saved to case_file under runs/ and never goes on the bus or LoRa.
+# SAMPLE numbers until we have the published trail-use data.
+case_file = "runs/case_demo.json"
+corridor_m = 1.0           # how far each side of a trail counts as flown
+segment_m = 9.0            # trail pathing searches this much of the trail first, from where it passes the car
+near_m = 5.0               # a trail this far from the car scores about a third of one right next to it
+default_popularity = 0.1   # trails missing from the popularity table
+entrance_xy = [0.0, 0.0]   # the start point when no car park is known
+car_parks = [
+  { name = "Car park A", x = -1.0, y = 0.5 },
+  { name = "Car park B", x = 10.0, y = 1.0 },
+]
+popularity = { "Taped trail" = 1.0 }
+
+# After "team on the way", the TV asks for a check-in on the found person this often (seconds),
+# and the fake pod flies one. The drone never decides: the pilot flies the real check-in.
+checkin_s = 300.0
+
+[sim]
+# Read only by tools/fake_bus.py (and later sim.py); the pod ignores this table.
+# The fake pod's path is a dumb stand-in. Real routes come from planner.py.
+path = "waypoints"         # "waypoints": loop the [waypoints] in order; "lanes": back-and-forth lanes over area_m
+speed_mps = 1.0            # walking pace, carrying the pod
+height_m = 3.0             # same as [pose] carry_height_m
+lane_m = 2.0               # lanes only
+lanes_from = "south" # lanes only: which edge the lanes start from, "south" or "north"
+area_m = []                # [x0, y0, x1, y1] for lanes; empty = the grids' area ([locate] area_m, else the "park" zone)
+# RSSI model, rssi = p0 - 10 n log10(d) + noise; a stand-in until ME 2's range test.
+rssi_p0 = -48.0
+rssi_n = 2.4
+rssi_sigma = 4.0
+rssi_floor = -98.0         # quieter than this is never heard
+checkin_dwell_s = 15.0     # each [search] checkin_s, the fake pod circles the found person this long, then goes back to its sweep
+# local_stack.py: the drone waits here until "Send out" on the TV; "Return to base" brings it back.
+base_xy = [0.0, 0.0]
+base_name = "Base"
+# Hidden phones. Omit x and y for one that rides on the pod (the team phone). person = true: someone
+# is with it, so the stand-in thermal reads warm and the camera sees them when the pod is close.
+phones = [
+  { name = "dead_iphone", cls = "findmy", x = 2.0, y = 6.0, person = true },     # 6 m off trail
+  { name = "airtag_camp", cls = "findmy", x = 7.0, y = -2.5 },    # in the campground
+  { name = "pixel_off",   cls = "findhub", x = 4.5, y = 1.5 },    # 1.5 m: near the trail, search-only
+  { name = "team_phone",  cls = "findmy" },
+]
+
+# Indoor taped park: waypoint number -> [x, y] in metres from waypoint 0.
+[waypoints]
+0 = [0.0, 0.0]
+1 = [3.0, 0.0]
+2 = [6.0, 0.0]
+3 = [9.0, 0.0]
+4 = [9.0, 3.0]
+5 = [6.0, 3.0]
+6 = [3.0, 3.0]
+7 = [0.0, 3.0]
